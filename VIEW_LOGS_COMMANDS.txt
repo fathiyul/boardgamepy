@@ -1,0 +1,42 @@
+═══════════════════════════════════════════════════════════════
+  BOARDGAMEPY - VIEW LOGS COMMANDS
+═══════════════════════════════════════════════════════════════
+
+📋 LIST GAMES
+─────────────────────────────────────────────────────────────
+python view_logs.py list                    # Last 10 games
+python view_logs.py list TicTacToe          # Last 10 TicTacToe
+python view_logs.py list Codenames 5        # Last 5 Codenames
+
+📊 GAME DETAILS
+─────────────────────────────────────────────────────────────
+python view_logs.py details <game-id>       # Full game info
+
+📈 STATISTICS
+─────────────────────────────────────────────────────────────
+python view_logs.py stats                   # All games stats
+python view_logs.py stats TicTacToe         # TicTacToe stats
+
+💾 EXPORT FOR FINE-TUNING
+─────────────────────────────────────────────────────────────
+python view_logs.py export                  # All games (100)
+python view_logs.py export TicTacToe 1000   # 1000 TicTacToe
+# Creates: training_data.json
+
+🎮 RUN GAMES
+─────────────────────────────────────────────────────────────
+cd examples/tictactoe && python3 main.py
+cd examples/subtract-a-square && python3 main.py
+cd examples/codenames && python3 main.py
+
+⚙️ ENABLE LOGGING
+─────────────────────────────────────────────────────────────
+# Edit .env file:
+ENABLE_LOGGING=true
+
+# Start MongoDB:
+docker run -d -p 27017:27017 --name mongodb mongo:latest
+
+═══════════════════════════════════════════════════════════════
+Full docs: README.md, QUICKSTART.md, LOGGING_GUIDE.md
+═══════════════════════════════════════════════════════════════
