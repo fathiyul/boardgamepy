@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="BoardGamePy Logo" width="200"/>
+</p>
+
 # BoardGamePy
 
 A lean Python framework for building AI-playable board games with reusable abstractions.
