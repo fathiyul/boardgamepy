@@ -22,12 +22,35 @@ BoardGamePy provides core abstractions for creating board games that can be play
 
 ## Installation
 
+### From GitHub Release (Recommended)
+
+Download the latest release from [GitHub Releases](https://github.com/fathiyul/boardgamepy/releases):
+
+```bash
+# Download and install the wheel file
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.1.0/boardgamepy-0.1.0-py3-none-any.whl
+
+# With AI support (for LLM agents)
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.1.0/boardgamepy-0.1.0-py3-none-any.whl[ai]
+
+# With all optional dependencies
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.1.0/boardgamepy-0.1.0-py3-none-any.whl[ai,examples]
+```
+
+Or download the `.whl` file manually and install:
+
+```bash
+pip install boardgamepy-0.1.0-py3-none-any.whl
+```
+
+### From Source (for development)
+
 ```bash
 # Clone the repository
-git clone https://github.com/fathiyul/boardgamepy.git 
+git clone https://github.com/fathiyul/boardgamepy.git
 cd boardgamepy
 
-# Install the package (editable mode)
+# Install in editable mode
 pip install -e .
 
 # With AI support (for LLM agents)
@@ -37,12 +60,7 @@ pip install -e ".[ai]"
 pip install -e ".[ai,examples]"
 ```
 
-> **Note**: BoardGamePy is not yet published to PyPI. Installation requires cloning the repository.
->
-> For GitHub releases with `.whl` files (coming soon), you'll be able to:
-> ```bash
-> pip install boardgamepy-0.1.0-py3-none-any.whl
-> ```
+> **Note**: BoardGamePy is not yet published to PyPI. Use GitHub releases or install from source.
 
 ## Quick Start
 
@@ -140,14 +158,27 @@ docker run -d -p 27017:27017 --name mongodb mongo:latest
 
 2. **Configure (edit `.env`):**
 ```env
-ENABLE_LOGGING=true
+# MongoDB Configuration
 MONGO_URI=mongodb://localhost:27017
 MONGO_DB_NAME=boardgamepy_logs
 
-# Optional: Enable LangSmith for LLM observability
+# Logging Configuration
+ENABLE_LOGGING=true
+LOG_LEVEL=INFO
+
+# LLM Model Defaults
+OPENAI_MODEL=gpt-4o-mini
+OPENROUTER_MODEL=google/gemini-2.5-flash
+
+# API Keys
+OPENAI_API_KEY=your-openai-api-key-here
+OPENROUTER_API_KEY=your-openrouter-api-key-here
+
+# LangSmith Tracing
 LANGCHAIN_TRACING_V2=true
-LANGCHAIN_API_KEY=your-langsmith-api-key
+LANGCHAIN_API_KEY=your-langsmith-api-key-here
 LANGCHAIN_PROJECT=boardgamepy
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
 ```
 
 3. **Run a game** - logging happens automatically!
