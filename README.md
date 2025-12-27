@@ -20,7 +20,7 @@ BoardGamePy provides core abstractions for creating board games that can be play
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/fathiyul/boardgamepy.git 
 cd boardgamepy
 
 # Install the package (editable mode)
