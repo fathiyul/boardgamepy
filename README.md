@@ -19,15 +19,26 @@ BoardGamePy provides core abstractions for creating board games that can be play
 ## Installation
 
 ```bash
-# Install from local directory
-pip install -e boardgamepy/
+# Clone the repository
+git clone <repository-url>
+cd boardgamepy
+
+# Install the package (editable mode)
+pip install -e .
 
 # With AI support (for LLM agents)
-pip install -e "boardgamepy/[ai]"
+pip install -e ".[ai]"
 
 # For running examples
-pip install -e "boardgamepy/[ai,examples]"
+pip install -e ".[ai,examples]"
 ```
+
+> **Note**: BoardGamePy is not yet published to PyPI. Installation requires cloning the repository.
+>
+> For GitHub releases with `.whl` files (coming soon), you'll be able to:
+> ```bash
+> pip install boardgamepy-0.1.0-py3-none-any.whl
+> ```
 
 ## Quick Start
 
