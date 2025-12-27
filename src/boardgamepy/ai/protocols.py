@@ -1,7 +1,7 @@
 """AI-specific protocols and types."""
 
 from pydantic import BaseModel, Field
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from boardgamepy.core.player import Player

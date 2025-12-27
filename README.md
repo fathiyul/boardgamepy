@@ -2,7 +2,7 @@
 
 A lean Python framework for building AI-playable board games with reusable abstractions.
 
-**Quick Start:** See [QUICKSTART.md](QUICKSTART.md) for common commands and tasks.
+**📚 [Complete Documentation](docs/)** | **🚀 [Getting Started Tutorial](docs/getting-started.md)** | **⚡ [Quick Start](QUICKSTART.md)**
 
 ## Overview
 
@@ -116,6 +116,8 @@ BoardGamePy includes a comprehensive MongoDB-based logging system that captures:
 
 ### Enable Logging
 
+#### Option 1: Local MongoDB
+
 1. **Start MongoDB:**
 ```bash
 docker run -d -p 27017:27017 --name mongodb mongo:latest
@@ -125,6 +127,7 @@ docker run -d -p 27017:27017 --name mongodb mongo:latest
 ```env
 ENABLE_LOGGING=true
 MONGO_URI=mongodb://localhost:27017
+MONGO_DB_NAME=boardgamepy_logs
 
 # Optional: Enable LangSmith for LLM observability
 LANGCHAIN_TRACING_V2=true
@@ -133,6 +136,41 @@ LANGCHAIN_PROJECT=boardgamepy
 ```
 
 3. **Run a game** - logging happens automatically!
+
+#### Option 2: MongoDB Atlas (Cloud)
+
+1. **Create MongoDB Atlas cluster:**
+   - Sign up at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
+   - Create a free cluster
+   - Go to "Database Access" and create a database user
+   - Go to "Network Access" and add your IP address (or use 0.0.0.0/0 for testing)
+
+2. **Get connection string:**
+   - Click "Connect" on your cluster
+   - Choose "Connect your application"
+   - Copy the connection string (looks like `mongodb+srv://...`)
+
+3. **Configure (edit `.env`):**
+```env
+ENABLE_LOGGING=true
+MONGO_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
+MONGO_DB_NAME=boardgamepy_logs
+
+# Optional: Enable LangSmith for LLM observability
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=your-langsmith-api-key
+LANGCHAIN_PROJECT=boardgamepy
+```
+
+Replace `<username>`, `<password>`, and `<cluster>` with your actual MongoDB Atlas credentials.
+
+**Important:** If your password contains special characters (`#!%@$&+,/:;=?@[]`), you need to URL-encode it:
+```bash
+python3 -c "import urllib.parse; print(urllib.parse.quote_plus('your-password'))"
+```
+Use the encoded password in your `MONGO_URI`.
+
+4. **Run a game** - logging happens automatically!
 
 ### LangSmith Integration (Optional)
 

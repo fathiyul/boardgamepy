@@ -39,24 +39,38 @@ You need both:
 
 ### 2. Run the game
 
-**Option A: Using the helper script (recommended)**
+**Option A: Play as a human (Interactive with Rich UI)**
 
 ```bash
 cd examples/codenames
-./run.sh
+python main_human.py
 ```
 
-**Option B: Direct Python**
+Features the same beautiful terminal UI as the AI version! You'll be prompted to choose which roles to play as human vs AI:
+- Red Spymaster
+- Red Operatives
+- Blue Spymaster
+- Blue Operatives
+
+Mix and match! For example:
+- Play as Red Spymaster + Operatives vs AI Blue team
+- Play all 4 roles yourself for a full manual game
+- Play as one Spymaster and watch AI Operatives follow your clues
+
+**Option B: Watch AI vs AI (Original)**
 
 ```bash
 cd examples/codenames
 python main.py
 ```
 
-**Option C: From project root**
+This runs a fully automated AI vs AI game with rich terminal UI.
+
+**Option C: Using the helper script**
 
 ```bash
-python examples/codenames/main.py
+cd examples/codenames
+./run.sh
 ```
 
 ## What to Expect
@@ -156,8 +170,28 @@ To add new features:
 
 1. **New action types** - Create new `Action` subclasses
 2. **Different AI models** - Change the LLM configuration in `setup_ai_agents()`
-3. **Human players** - Replace `LLMAgent` with `HumanAgent` for specific players
+3. **Human players** - See `human_agent.py` and `main_human.py` for implementation example
 4. **Custom UI** - Extend `UIRenderer` to add terminal colors or web interface
+
+## Human Player Implementation
+
+The `main_human.py` demonstrates how to implement human players:
+
+1. **Custom Agent Class** (`human_agent.py`):
+```python
+class CodenamesHumanAgent:
+    def get_action(self, game, player):
+        # Show board, get console input, return action
+```
+
+2. **Player Configuration**:
+```python
+# In your game setup
+player.agent = CodenamesHumanAgent()
+player.agent_type = "human"
+```
+
+The human agent shows the appropriate board view, prompts for input, validates it, and returns the action in the same format as AI agents. This allows seamless mixing of human and AI players!
 
 ## Troubleshooting
 

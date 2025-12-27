@@ -88,8 +88,9 @@ def run_game(num_players: int | None = None) -> None:
             game.state.current_player_idx = next_idx
             continue
 
-        # Capture state before
+        # Capture state and board before
         state_before = copy.deepcopy(game.state)
+        board_before = copy.deepcopy(game.board)
 
         # Refresh UI
         ui.refresh(game)
@@ -149,10 +150,11 @@ def run_game(num_players: int | None = None) -> None:
                 character_to_reveal=llm_output.character_to_reveal,
             )
 
-            # Capture state after
+            # Capture state and board after
             state_after = copy.deepcopy(game.state)
+            board_after = copy.deepcopy(game.board)
 
-            # Log turn to MongoDB
+            # Log turn to MongoDB (Coup is non-deterministic - random card reveals)
             if game_logger.enabled:
                 llm_call_data = None
                 if hasattr(current_player.agent, '_last_llm_call'):
@@ -163,8 +165,8 @@ def run_game(num_players: int | None = None) -> None:
                     player=current_player,
                     state_before=state_before,
                     state_after=state_after,
-                    board_before="",
-                    board_after="",
+                    board_before=board_before,
+                    board_after=board_after,
                     action=action,
                     action_params={
                         "action": llm_output.action,
@@ -174,11 +176,23 @@ def run_game(num_players: int | None = None) -> None:
                     action_valid=True,
                     llm_call_data=llm_call_data
                 )
+
+            # Reset invalid counter on success
+            game.state.consecutive_invalid_actions = 0
         else:
-            print(f"⚠️  Invalid action: {llm_output.action}")
+            # Track consecutive invalid actions
+            game.state.consecutive_invalid_actions += 1
+            print(f"⚠️  Invalid action: {llm_output.action} (Strike {game.state.consecutive_invalid_actions}/3)")
             time.sleep(2)
-            # Eliminate player for invalid move
-            game.board.reveal_random_influence(player_idx)
+
+            # Check for 3-strikes rule - player loses all influence
+            if game.state.consecutive_invalid_actions >= 3:
+                print(f"❌ Player {player_idx + 1} made 3 consecutive invalid moves - LOSES ALL INFLUENCE")
+                # Reveal all influence
+                for card in game.board.influence[player_idx]:
+                    card.revealed = True
+                game.state.consecutive_invalid_actions = 0  # Reset
+
             continue
 
         # Small delay

@@ -87,6 +87,7 @@ def run_game(num_players: int | None = None) -> None:
 
             # Capture state before
             state_before = copy.deepcopy(game.state)
+            board_before = copy.deepcopy(game.board)
 
             # Refresh UI
             ui.refresh(game)
@@ -120,6 +121,7 @@ def run_game(num_players: int | None = None) -> None:
 
                 # Capture state after
                 state_after = copy.deepcopy(game.state)
+                board_after = copy.deepcopy(game.board)
 
                 # Log turn to MongoDB
                 if game_logger.enabled:
@@ -132,8 +134,8 @@ def run_game(num_players: int | None = None) -> None:
                         player=current_player,
                         state_before=state_before,
                         state_after=state_after,
-                        board_before="",
-                        board_after="",
+                        board_before=board_before,
+                        board_after=board_after,
                         action=action,
                         action_params={"card_to_play": llm_output.card_to_play},
                         action_valid=True,

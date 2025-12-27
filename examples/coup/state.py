@@ -23,6 +23,7 @@ class CoupState(GameState):
     current_player_idx: int = 0
     is_over: bool = False
     winner: int | None = None
+    consecutive_invalid_actions: int = 0  # Track invalid actions to prevent infinite loops
 
     # Pending action state (for challenge/block resolution)
     pending_action: ActionType | None = None

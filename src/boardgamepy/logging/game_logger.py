@@ -78,17 +78,20 @@ class GameLogger:
 
         # Serialize players
         players = [
-            {
-                "name": p.name,
-                "team": p.team,
-                "role": p.role,
-                "agent_type": p.agent_type
-            }
+            {"name": p.name, "team": p.team, "role": p.role, "agent_type": p.agent_type}
             for p in game.players
         ]
 
         # Get game name (use class name if name attribute doesn't exist)
-        game_name = getattr(game, 'name', game.__class__.__name__)
+        game_name = getattr(game, "name", game.__class__.__name__)
+
+        # Capture initial board state if available
+        initial_board = None
+        if hasattr(game, "board"):
+            try:
+                initial_board = StateSerializer.serialize(game.board)
+            except Exception as e:
+                logger.warning(f"Could not serialize initial board: {e}")
 
         # Create game document
         game_doc = {
@@ -98,8 +101,9 @@ class GameLogger:
             "timestamp_end": None,
             "config": config_params,
             "players": players,
+            "initial_board": initial_board,
             "final_state": None,
-            "outcome": None
+            "outcome": None,
         }
 
         try:
@@ -117,12 +121,12 @@ class GameLogger:
         player: Any,
         state_before: Any,
         state_after: Any,
-        board_before: str,
-        board_after: str,
-        action: Any,
-        action_params: Dict[str, Any],
-        action_valid: bool,
-        llm_call_data: Optional[Dict[str, Any]] = None
+        board_before: Any = None,
+        board_after: Any = None,
+        action: Any = None,
+        action_params: Dict[str, Any] = None,
+        action_valid: bool = True,
+        llm_call_data: Optional[Dict[str, Any]] = None,
     ):
         """
         Log a complete turn with all context.
@@ -131,8 +135,8 @@ class GameLogger:
             player: Player who took action
             state_before: Game state before action
             state_after: Game state after action
-            board_before: Board representation before action
-            board_after: Board representation after action
+            board_before: Board object before action (will be serialized)
+            board_after: Board object after action (will be serialized)
             action: Action instance
             action_params: Action parameters
             action_valid: Whether action was valid
@@ -143,27 +147,51 @@ class GameLogger:
 
         self.turn_number += 1
 
+        # Serialize board objects if provided
+        board_before_data = None
+        board_after_data = None
+
+        if board_before is not None:
+            try:
+                # If it's a string (legacy), keep it as is
+                if isinstance(board_before, str):
+                    board_before_data = board_before
+                else:
+                    # Serialize the board object to capture all data
+                    board_before_data = StateSerializer.serialize(board_before)
+            except Exception as e:
+                logger.warning(f"Could not serialize board_before: {e}")
+                board_before_data = str(board_before)
+
+        if board_after is not None:
+            try:
+                # If it's a string (legacy), keep it as is
+                if isinstance(board_after, str):
+                    board_after_data = board_after
+                else:
+                    # Serialize the board object to capture all data
+                    board_after_data = StateSerializer.serialize(board_after)
+            except Exception as e:
+                logger.warning(f"Could not serialize board_after: {e}")
+                board_after_data = str(board_after)
+
         # Build turn document
         turn_doc = {
             "game_id": self.game_id,
             "turn_number": self.turn_number,
             "timestamp": datetime.now(timezone.utc),
-            "player": {
-                "name": player.name,
-                "team": player.team,
-                "role": player.role
-            },
+            "player": {"name": player.name, "team": player.team, "role": player.role},
             "state_before": StateSerializer.serialize(state_before),
             "state_after": StateSerializer.serialize(state_after),
-            "board_before": board_before,
-            "board_after": board_after,
+            "board_before": board_before_data,
+            "board_after": board_after_data,
             "action": {
-                "type": action.name,
-                "display_name": action.display_name,
-                "params": action_params,
-                "valid": action_valid
+                "type": action.name if action else None,
+                "display_name": action.display_name if action else None,
+                "params": action_params or {},
+                "valid": action_valid,
             },
-            "llm_call": llm_call_data
+            "llm_call": llm_call_data,
         }
 
         try:
@@ -185,7 +213,9 @@ class GameLogger:
             return
 
         end_time = datetime.now(timezone.utc)
-        duration = (end_time - self.start_time).total_seconds() if self.start_time else 0
+        duration = (
+            (end_time - self.start_time).total_seconds() if self.start_time else 0
+        )
 
         # Update game document
         update_doc = {
@@ -193,19 +223,20 @@ class GameLogger:
                 "timestamp_end": end_time,
                 "final_state": StateSerializer.serialize(game.state),
                 "outcome": {
-                    "winner": str(game.state.get_winner()) if game.state.get_winner() is not None else None,
+                    "winner": str(game.state.get_winner())
+                    if game.state.get_winner() is not None
+                    else None,
                     "total_turns": self.turn_number,
-                    "duration_seconds": duration
-                }
+                    "duration_seconds": duration,
+                },
             }
         }
 
         try:
-            self.mongodb.games.update_one(
-                {"game_id": self.game_id},
-                update_doc
+            self.mongodb.games.update_one({"game_id": self.game_id}, update_doc)
+            logger.info(
+                f"Game ended: {self.game_id} (winner: {game.state.get_winner()})"
             )
-            logger.info(f"Game ended: {self.game_id} (winner: {game.state.get_winner()})")
         except Exception as e:
             logger.error(f"Failed to log game end: {e}")
             if self.config.enable_logging:

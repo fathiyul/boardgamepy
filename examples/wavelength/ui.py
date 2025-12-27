@@ -48,7 +48,22 @@ def render_spectrum(game: "WavelengthGame") -> None:
     spectrum = game.board.current_spectrum
 
     print(f"{term.BOLD}Current Spectrum:{term.RESET}")
-    print(f"  {term.FG_CYAN}[{spectrum.left}]{term.RESET} ←──────────────────────────→ {term.FG_MAGENTA}[{spectrum.right}]{term.RESET}")
+
+    # Calculate arrow length to match scale line below
+    # Scale line format: "0" + 40 spaces + "50" + 40 spaces + "100" = 86 chars
+    scale_width = 86
+
+    # Fixed parts of arrow line: "[" + "]" + " " + "←" + "→" + " " + "[" + "]" = 8 chars
+    # Variable parts: spectrum.left and spectrum.right text
+    fixed_chars = 8  # Brackets, spaces, and arrow ends
+    text_length = len(spectrum.left) + len(spectrum.right)
+    arrow_dashes_needed = scale_width - fixed_chars - text_length
+
+    # Ensure minimum arrow length
+    arrow_dashes = max(arrow_dashes_needed, 10)
+    arrow = "─" * arrow_dashes
+
+    print(f"  {term.FG_CYAN}[{spectrum.left}]{term.RESET} ←{arrow}→ {term.FG_MAGENTA}[{spectrum.right}]{term.RESET}")
     print(f"  {term.DIM}0{'':^40}50{'':^40}100{term.RESET}")
 
     # Show actual target position (for viewers - hidden from players in real game)

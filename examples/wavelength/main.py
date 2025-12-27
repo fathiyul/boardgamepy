@@ -99,8 +99,9 @@ def run_game(num_players: int | None = None, target_score: int | None = None) ->
         current_player = game.get_current_player()
         phase = game.state.phase
 
-        # Capture state before
+        # Capture state and board before
         state_before = copy.deepcopy(game.state)
+        board_before = copy.deepcopy(game.board)
 
         # Refresh UI
         ui.refresh(game)
@@ -121,8 +122,9 @@ def run_game(num_players: int | None = None, target_score: int | None = None) ->
                 if action.validate(game, current_player, clue=llm_output.clue):
                     action.apply(game, current_player, clue=llm_output.clue)
 
-                    # Capture state after
+                    # Capture state and board after
                     state_after = copy.deepcopy(game.state)
+                    board_after = copy.deepcopy(game.board)
 
                     # Log turn
                     if game_logger.enabled:
@@ -135,8 +137,8 @@ def run_game(num_players: int | None = None, target_score: int | None = None) ->
                             player=current_player,
                             state_before=state_before,
                             state_after=state_after,
-                            board_before="",
-                            board_after="",
+                            board_before=board_before,
+                            board_after=board_after,
                             action=action,
                             action_params={"clue": llm_output.clue},
                             action_valid=True,
@@ -167,8 +169,9 @@ def run_game(num_players: int | None = None, target_score: int | None = None) ->
                 if action.validate(game, current_player, position=llm_output.position):
                     action.apply(game, current_player, position=llm_output.position)
 
-                    # Capture state after
+                    # Capture state and board after
                     state_after = copy.deepcopy(game.state)
+                    board_after = copy.deepcopy(game.board)
 
                     # Log turn
                     if game_logger.enabled:
@@ -181,8 +184,8 @@ def run_game(num_players: int | None = None, target_score: int | None = None) ->
                             player=current_player,
                             state_before=state_before,
                             state_after=state_after,
-                            board_before="",
-                            board_after="",
+                            board_before=board_before,
+                            board_after=board_after,
                             action=action,
                             action_params={"position": llm_output.position},
                             action_valid=True,
@@ -213,8 +216,9 @@ def run_game(num_players: int | None = None, target_score: int | None = None) ->
                 if action.validate(game, current_player, prediction=llm_output.prediction):
                     action.apply(game, current_player, prediction=llm_output.prediction)
 
-                    # Capture state after
+                    # Capture state and board after
                     state_after = copy.deepcopy(game.state)
+                    board_after = copy.deepcopy(game.board)
 
                     # Log turn
                     if game_logger.enabled:
@@ -227,8 +231,8 @@ def run_game(num_players: int | None = None, target_score: int | None = None) ->
                             player=current_player,
                             state_before=state_before,
                             state_after=state_after,
-                            board_before="",
-                            board_after="",
+                            board_before=board_before,
+                            board_after=board_after,
                             action=action,
                             action_params={"prediction": llm_output.prediction},
                             action_valid=True,

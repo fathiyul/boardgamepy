@@ -1,7 +1,6 @@
-"""Codenames game using boardgamepy framework - demonstration."""
+"""Codenames game with human players."""
 
 import logging
-from datetime import datetime
 from pathlib import Path
 
 from langchain_openai import ChatOpenAI
@@ -11,6 +10,7 @@ from game import CodenamesGame
 from data import load_codenames
 from prompts import SpymasterPromptBuilder, OperativesPromptBuilder
 from actions import ClueAction, GuessAction, PassAction
+from human_agent import CodenamesHumanAgent
 from config import config
 import ui
 import copy
@@ -19,14 +19,11 @@ import copy
 log_file = Path(__file__).parent / "game_errors.log"
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_file),
-        logging.StreamHandler()  # Also print to console
-    ]
+    format="%(asctime)s - %(message)s",
+    handlers=[logging.FileHandler(log_file), logging.StreamHandler()],
 )
 
-# Suppress HTTP request logging from libraries
+# Suppress HTTP request logging
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("openai").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
@@ -34,14 +31,49 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
-def setup_ai_agents(game: CodenamesGame, logging_config: LoggingConfig) -> None:
+def setup_players(
+    game: CodenamesGame, logging_config: LoggingConfig
+) -> tuple[str, str]:
     """
-    Configure AI agents for all players.
+    Configure players - ask user which role they want to play.
+    All other roles will be AI.
 
-    This demonstrates how to use the framework's LLMAgent with
-    game-specific prompt builders.
+    Returns:
+        tuple[str, str]: (team, role) of the human player
     """
-    # Create base LLM
+    print("\n" + "=" * 60)
+    print("PLAYER CONFIGURATION")
+    print("=" * 60)
+    print("\nWhich player do you want to be?\n")
+
+    # Ask for team
+    while True:
+        team_choice = input("Choose your team - (r)ed or (b)lue? ").strip().lower()
+        if team_choice in ["r", "red"]:
+            human_team = "Red"
+            break
+        elif team_choice in ["b", "blue"]:
+            human_team = "Blue"
+            break
+        print("Please enter 'r' for Red or 'b' for Blue")
+
+    # Ask for role
+    while True:
+        role_choice = (
+            input("Choose your role - (s)pymaster or (o)peratives? ").strip().lower()
+        )
+        if role_choice in ["s", "spymaster"]:
+            human_role = "Spymaster"
+            break
+        elif role_choice in ["o", "operatives"]:
+            human_role = "Operatives"
+            break
+        print("Please enter 's' for Spymaster or 'o' for Operatives")
+
+    print(f"\n✓ You will play as {human_team} {human_role}")
+    print(f"✓ All other players will be AI\n")
+
+    # Create base LLM for AI players
     base_llm = ChatOpenAI(
         model=logging_config.openrouter_model,
         api_key=config.OPENROUTER_API_KEY,
@@ -49,54 +81,63 @@ def setup_ai_agents(game: CodenamesGame, logging_config: LoggingConfig) -> None:
     )
     model_name = logging_config.openrouter_model
 
-    # Configure Spymaster agents
+    # Configure each player
     for player in game.players:
-        if player.role == "Spymaster":
-            base_agent = LLMAgent(
-                llm=base_llm,
-                prompt_builder=SpymasterPromptBuilder(),
-                output_schema=ClueAction.OutputSchema,
-            )
+        if player.team == human_team and player.role == human_role:
+            # This is the human player
+            player.agent = CodenamesHumanAgent()
+            player.agent_type = "human"
+        else:
+            # AI player
+            if player.role == "Spymaster":
+                base_agent = LLMAgent(
+                    llm=base_llm,
+                    prompt_builder=SpymasterPromptBuilder(),
+                    output_schema=ClueAction.OutputSchema,
+                )
+            else:  # Operatives
+                base_agent = LLMAgent(
+                    llm=base_llm,
+                    prompt_builder=OperativesPromptBuilder(),
+                    output_schema=GuessAction.OutputSchema,
+                )
             player.agent = LoggedLLMAgent(base_agent, model_name)
-        elif player.role == "Operatives":
-            base_agent = LLMAgent(
-                llm=base_llm,
-                prompt_builder=OperativesPromptBuilder(),
-                output_schema=GuessAction.OutputSchema,
-            )
-            player.agent = LoggedLLMAgent(base_agent, model_name)
+            player.agent_type = "ai"
+
+    print("=" * 60)
+    input("Press Enter to start the game...")
+    print("\n")
+
+    return human_team, human_role
 
 
-def run_game_with_custom_loop() -> None:
-    """
-    Run a Codenames game with UI like the original.
+def run_game():
+    """Run a Codenames game with human and/or AI players."""
+    print()
+    print("╔" + "═" * 58 + "╗")
+    print("║" + " " * 15 + "CODENAMES - HUMAN PLAYABLE" + " " * 17 + "║")
+    print("╚" + "═" * 58 + "╝")
+    print(f"\n📝 Logging errors to: {log_file.absolute()}\n")
 
-    This demonstrates the framework with rich terminal UI.
-    """
-    # Show log file location
-    print(f"📝 Logging errors to: {log_file.absolute()}\n")
-
-    # Load logging configuration
+    # Load configuration
     logging_config = LoggingConfig.load(Path(__file__).parent)
-
-    # Create game logger
     game_logger = GameLogger(logging_config)
 
-    # Load codenames and create game
+    # Create game
     codenames = load_codenames()
     game = CodenamesGame()
     game.setup(codenames=codenames)
 
     # Log game start
     if game_logger.enabled:
-        game_logger.start_game(game, {"codenames_version": "demo"})
+        game_logger.start_game(game, {"mode": "human_playable"})
 
-    # Configure AI agents with logging
-    setup_ai_agents(game, logging_config)
+    # Configure players
+    human_team, human_role = setup_players(game, logging_config)
 
     turn_count = 0
 
-    # Custom game loop with UI
+    # Main game loop
     while not game.state.is_terminal():
         turn_count += 1
         current_player = game.get_current_player()
@@ -104,13 +145,28 @@ def run_game_with_custom_loop() -> None:
         # Capture state before action
         state_before = copy.deepcopy(game.state)
 
-        # Determine view mode
-        mode = "spymaster" if current_player.role == "Spymaster" else "operatives"
+        # Determine view mode based on human player's role
+        # If human is playing operatives, they should never see card colors
+        if human_role == "Operatives":
+            # Human operative should always see operatives view (no colors)
+            mode = "operatives"
+        else:
+            # Human is spymaster, show appropriate view for current turn
+            mode = "spymaster" if current_player.role == "Spymaster" else "operatives"
 
         # Refresh UI to show current state
         ui.refresh(game, mode, show_history=True)
 
-        # Get action from agent
+        # Show player type indicator
+        player_type = "HUMAN" if current_player.agent_type == "human" else "AI"
+        ui.render_message(
+            current_player.team,
+            current_player.role,
+            f"[{player_type} PLAYER]",
+            kind="info",
+        )
+
+        # Get action from agent (human or AI)
         if current_player.role == "Spymaster":
             # Spymaster gives clue
             action_class = ClueAction
@@ -120,10 +176,11 @@ def run_game_with_custom_loop() -> None:
             # Show clue with color
             clue_colored = ui.term.colorize(
                 f"{llm_output.clue} (Count: {llm_output.count})",
-                fg=ui._team_fg(current_player.team)
+                fg=ui._team_fg(current_player.team),
             )
             ui.render_message(current_player.team, "Spymaster", clue_colored)
-            ui.render_reasoning(llm_output.reasoning)
+            if llm_output.reasoning:
+                ui.render_reasoning(llm_output.reasoning)
 
         else:  # Operatives
             # Operatives guess or pass
@@ -137,7 +194,8 @@ def run_game_with_custom_loop() -> None:
                 action_class = GuessAction
                 params = {"codename": llm_output.codename}
 
-            ui.render_reasoning(llm_output.reasoning)
+            if llm_output.reasoning:
+                ui.render_reasoning(llm_output.reasoning)
 
         # Create action instance and validate
         action = action_class()
@@ -151,10 +209,9 @@ def run_game_with_custom_loop() -> None:
 
             # Log turn to MongoDB
             # Note: Codenames is deterministic - initial_board + actions = full replay
-            # No need to log board per-turn
             if game_logger.enabled:
                 llm_call_data = None
-                if hasattr(current_player.agent, '_last_llm_call'):
+                if hasattr(current_player.agent, "_last_llm_call"):
                     llm_call_data = current_player.agent._last_llm_call
                     current_player.agent._last_llm_call = None
 
@@ -167,10 +224,10 @@ def run_game_with_custom_loop() -> None:
                     action=action,
                     action_params=params,
                     action_valid=True,
-                    llm_call_data=llm_call_data
+                    llm_call_data=llm_call_data,
                 )
 
-            # Reset invalid action counter on success
+            # Reset invalid action counter
             game.state.consecutive_invalid_actions = 0
 
             # Show result for guesses
@@ -178,10 +235,9 @@ def run_game_with_custom_loop() -> None:
                 ui.render_guess_result(current_player.team, params["codename"], result)
 
         else:
-            # INVALID ACTION - log and track it
+            # INVALID ACTION
             game.state.consecutive_invalid_actions += 1
 
-            # Create detailed error message
             error_details = (
                 f"Team: {current_player.team}, "
                 f"Role: {current_player.role}, "
@@ -190,56 +246,60 @@ def run_game_with_custom_loop() -> None:
                 f"Consecutive invalid: {game.state.consecutive_invalid_actions}"
             )
 
-            # Log to file and console
             logger.error(f"INVALID ACTION - {error_details}")
 
-            # Show persistent error message (won't be cleared immediately)
+            # Show persistent error message
             ui.render_message(
                 current_player.team,
                 current_player.role,
                 f"⚠ Invalid action! (Strike {game.state.consecutive_invalid_actions}/3)",
-                kind="warn"
+                kind="warn",
             )
-            print(f"  Details: {params}")  # Extra detail line
+            print(f"  Details: {params}")
 
-            # Check for 3-strikes rule
+            # 3-strikes rule
             if game.state.consecutive_invalid_actions >= 3:
-                logger.error(f"3 CONSECUTIVE INVALID ACTIONS - {current_player.team} LOSES")
+                logger.error(
+                    f"3 CONSECUTIVE INVALID ACTIONS - {current_player.team} LOSES"
+                )
                 game.state.is_over = True
                 game.state.winner = "Blue" if current_player.team == "Red" else "Red"
                 ui.render_message(
                     None,
                     "PENALTY",
                     f"{current_player.team} made 3 consecutive invalid actions and loses!",
-                    kind="error"
+                    kind="error",
                 )
                 break
 
-            # Longer delay for invalid actions so user can see the error
             import time
+
             time.sleep(2.0)
 
-        # Small delay to see actions
+        # Small delay to see actions (shorter for human players)
         import time
-        time.sleep(0.3)
+
+        if current_player.agent_type == "ai":
+            time.sleep(0.3)
+        else:
+            time.sleep(0.1)
 
         # Safety limit
         if turn_count > 100:
-            ui.render_message(None, "GAME", "Turn limit reached, ending game", kind="warn")
+            ui.render_message(
+                None, "GAME", "Turn limit reached, ending game", kind="warn"
+            )
             break
 
     # Log game end
     if game_logger.enabled:
         game_logger.end_game(game)
 
-    # Final screen and summary
-    ui.refresh(game, "operatives", show_history=True)
+    # Final screen and summary - show all cards revealed (spymaster view)
+    ui.refresh(game, "spymaster", show_history=True)
     if game.state.get_winner():
         ui.render_message(
-            None,
-            "GAME OVER",
-            f"Winner: {game.state.get_winner()}",
-            kind="success"
+            None, "GAME OVER", f"Winner: {game.state.get_winner()}", kind="success"
         )
     else:
         ui.render_message(None, "GAME OVER", "No winner", kind="info")
@@ -248,10 +308,13 @@ def run_game_with_custom_loop() -> None:
 def main():
     """Main entry point."""
     try:
-        run_game_with_custom_loop()
+        run_game()
+    except KeyboardInterrupt:
+        print("\n\nGame interrupted by user. Goodbye!")
     except Exception as e:
         print(f"\n❌ Error: {e}")
         import traceback
+
         traceback.print_exc()
 
 

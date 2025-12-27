@@ -71,10 +71,12 @@ class LoggingConfig:
             enable_logging=enable_logging,
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-            openrouter_model=os.getenv("OPENROUTER_MODEL", "google/gemini-2.0-flash-exp"),
+            openrouter_model=os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash"),
             langsmith_tracing=langsmith_tracing,
             langsmith_project=os.getenv("LANGCHAIN_PROJECT", "boardgamepy"),
-            langsmith_endpoint=os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com"),
+            langsmith_endpoint=os.getenv(
+                "LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com"
+            ),
         )
 
     def get_model_name(self, provider: str) -> str:

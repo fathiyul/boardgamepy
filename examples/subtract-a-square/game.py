@@ -38,8 +38,8 @@ class SubtractASquareGame(Game):
 
         # Create players
         self.players = [
-            Player(team="Player 1", role="player", agent=None),
-            Player(team="Player 2", role="player", agent=None),
+            Player(name="Player 1", team="Player 1", role="player", agent=None),
+            Player(name="Player 2", team="Player 2", role="player", agent=None),
         ]
 
         # Register actions

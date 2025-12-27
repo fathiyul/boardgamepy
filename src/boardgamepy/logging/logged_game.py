@@ -59,10 +59,13 @@ class LoggedGame:
             while not self.game.state.is_terminal():
                 player = self.game.get_current_player()
 
-                # Capture state before
+                # Capture state and board before
                 state_before = copy.deepcopy(self.game.state)
-                context = SimpleViewContext(player=player, game_state=self.game.state)
-                board_before = self.game.board.get_view(context) if hasattr(self.game, 'board') else "N/A"
+                board_before = (
+                    copy.deepcopy(self.game.board)
+                    if hasattr(self.game, "board")
+                    else None
+                )
 
                 # Get action from agent
                 if player.agent is None:
@@ -73,7 +76,7 @@ class LoggedGame:
                 action, params = player.agent.decide(self.game, player)
 
                 # Check if agent has captured LLM data
-                if hasattr(player.agent, '_last_llm_call'):
+                if hasattr(player.agent, "_last_llm_call"):
                     llm_call_data = player.agent._last_llm_call
                     player.agent._last_llm_call = None  # Clear for next turn
 
@@ -84,12 +87,17 @@ class LoggedGame:
                     # Apply action
                     action.apply(self.game, player, **params)
                 else:
-                    raise ValueError(f"Invalid action {action.name} with params {params}")
+                    raise ValueError(
+                        f"Invalid action {action.name} with params {params}"
+                    )
 
-                # Capture state after
+                # Capture state and board after
                 state_after = copy.deepcopy(self.game.state)
-                context_after = SimpleViewContext(player=player, game_state=self.game.state)
-                board_after = self.game.board.get_view(context_after) if hasattr(self.game, 'board') else "N/A"
+                board_after = (
+                    copy.deepcopy(self.game.board)
+                    if hasattr(self.game, "board")
+                    else None
+                )
 
                 # Log turn
                 if self.logger.enabled:
@@ -102,7 +110,7 @@ class LoggedGame:
                         action=action,
                         action_params=params,
                         action_valid=action_valid,
-                        llm_call_data=llm_call_data
+                        llm_call_data=llm_call_data,
                     )
 
             # Game ended

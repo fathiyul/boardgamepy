@@ -1,5 +1,6 @@
 """AI agent implementations."""
 
+from langchain_openai import ChatOpenAI
 from typing import TYPE_CHECKING
 from pydantic import BaseModel
 
@@ -23,7 +24,7 @@ class LLMAgent:
 
     def __init__(
         self,
-        llm: any,  # ChatOpenAI instance
+        llm: ChatOpenAI,
         prompt_builder: "PromptBuilder",
         output_schema: type[BaseModel],
     ):
@@ -52,7 +53,7 @@ class LLMAgent:
             Structured output from LLM matching output_schema
         """
         messages = self.prompt_builder.build_messages(game, player)
-        return self._structured_llm.invoke(messages)
+        return self._structured_llm.invoke(messages)  # type: ignore
 
     def decide(self, game: "Game", player: "Player") -> tuple:
         """

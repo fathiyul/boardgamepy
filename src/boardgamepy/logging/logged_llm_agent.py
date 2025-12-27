@@ -60,14 +60,16 @@ class LoggedLLMAgent:
             # Capture LLM call data
             self._last_llm_call = {
                 "messages": messages,
-                "response": response.model_dump() if isinstance(response, BaseModel) else response,
+                "response": response.model_dump()
+                if isinstance(response, BaseModel)
+                else response,
                 "model": self.model_name,
                 "timestamp": timestamp,
                 "metadata": {
                     "latency_ms": latency_ms,
                     # Usage data would come from LLM response if available
-                    "usage": getattr(response, 'usage', None)
-                }
+                    "usage": getattr(response, "usage", None),
+                },
             }
 
             return response
@@ -80,9 +82,7 @@ class LoggedLLMAgent:
                 "model": self.model_name,
                 "timestamp": timestamp,
                 "error": str(e),
-                "metadata": {
-                    "latency_ms": (time.time() - start_time) * 1000
-                }
+                "metadata": {"latency_ms": (time.time() - start_time) * 1000},
             }
             raise
 

@@ -14,7 +14,10 @@ class LoveLetterState(GameState):
     scores: dict[int, int] = field(default_factory=dict)  # player_idx -> tokens won
     is_over: bool = False
     winner: int | None = None  # Player index of game winner
-    target_tokens: int = 4  # Tokens needed to win (varies by player count)
+    target_tokens: int = 3  # Three rounds per game
+    consecutive_invalid_actions: int = (
+        0  # Track invalid actions to prevent infinite loops
+    )
 
     # Round state
     round_over: bool = False

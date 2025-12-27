@@ -86,6 +86,7 @@ def run_game(num_players: int | None = None, target_tokens: int | None = None) -
 
             # Capture state before
             state_before = copy.deepcopy(game.state)
+            board_before = copy.deepcopy(game.board)
 
             # Draw card for turn
             drawn_card = None
@@ -140,6 +141,7 @@ def run_game(num_players: int | None = None, target_tokens: int | None = None) -
 
                 # Capture state after
                 state_after = copy.deepcopy(game.state)
+                board_after = copy.deepcopy(game.board)
 
                 # Log turn to MongoDB
                 if game_logger.enabled:
@@ -152,8 +154,8 @@ def run_game(num_players: int | None = None, target_tokens: int | None = None) -
                         player=current_player,
                         state_before=state_before,
                         state_after=state_after,
-                        board_before="",
-                        board_after="",
+                        board_before=board_before,
+                        board_after=board_after,
                         action=action,
                         action_params={
                             "card_to_play": llm_output.card_to_play,
@@ -163,11 +165,26 @@ def run_game(num_players: int | None = None, target_tokens: int | None = None) -
                         action_valid=True,
                         llm_call_data=llm_call_data
                     )
+
+                # Reset invalid counter on success
+                game.state.consecutive_invalid_actions = 0
             else:
-                print(f"⚠️  Invalid move: {llm_output.card_to_play}")
+                # Track consecutive invalid actions
+                game.state.consecutive_invalid_actions += 1
+                print(f"⚠️  Invalid move: {llm_output.card_to_play} (Strike {game.state.consecutive_invalid_actions}/3)")
                 time.sleep(2)
-                # Eliminate player for invalid move
-                game.board.eliminate_player(player_idx)
+
+                # Check for 3-strikes rule - player loses
+                if game.state.consecutive_invalid_actions >= 3:
+                    print(f"❌ Player {player_idx + 1} made 3 consecutive invalid moves - ELIMINATED")
+                    game.board.eliminate_player(player_idx)
+                    game.state.consecutive_invalid_actions = 0  # Reset for next player
+
+                # Advance to next player
+                next_idx = (player_idx + 1) % game.num_players
+                while next_idx in game.board.eliminated:
+                    next_idx = (next_idx + 1) % game.num_players
+                game.state.current_player_idx = next_idx
                 continue
 
             # Small delay

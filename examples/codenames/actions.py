@@ -77,6 +77,7 @@ class ClueAction(Action["CodenamesGame"]):
         """Convert to history record."""
         return {
             "type": "clue",
+            "player": f"{player.team} {player.role}",
             "team": player.team,
             "clue": clue,
             "count": count,
@@ -174,6 +175,7 @@ class GuessAction(Action["CodenamesGame"]):
         """Convert to history record."""
         return {
             "type": "guess",
+            "player": f"{player.team} {player.role}",
             "team": player.team,
             "codename": codename,
             "card_type": card_type,
@@ -205,5 +207,6 @@ class PassAction(Action["CodenamesGame"]):
         """Convert to history record."""
         return {
             "type": "pass",
+            "player": f"{player.team} {player.role}",
             "team": player.team,
         }

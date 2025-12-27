@@ -63,6 +63,7 @@ def collect_decisions(game: IncanGoldGame, game_logger) -> None:
 
         # Capture state before
         state_before = copy.deepcopy(game.state)
+        board_before = copy.deepcopy(game.board)
 
         # Refresh UI for current player
         ui.refresh(game)
@@ -86,6 +87,7 @@ def collect_decisions(game: IncanGoldGame, game_logger) -> None:
 
             # Capture state after
             state_after = copy.deepcopy(game.state)
+            board_after = copy.deepcopy(game.board)
 
             # Log turn
             if game_logger.enabled:
@@ -98,8 +100,8 @@ def collect_decisions(game: IncanGoldGame, game_logger) -> None:
                     player=player,
                     state_before=state_before,
                     state_after=state_after,
-                    board_before="",
-                    board_after="",
+                    board_before=board_before,
+                    board_after=board_after,
                     action=action,
                     action_params={"decision": llm_output.decision},
                     action_valid=True,

@@ -1,9 +1,15 @@
 """MongoDB client manager with connection pooling and error handling."""
 
 from pymongo import MongoClient, ASCENDING
-from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
+from pymongo.errors import (
+    ConnectionFailure,
+    ServerSelectionTimeoutError,
+    InvalidURI,
+    ConfigurationError,
+)
 from typing import Optional
 import logging
+import urllib.parse
 
 from .config import LoggingConfig
 
@@ -46,12 +52,12 @@ class MongoDBClient:
         try:
             self._client = MongoClient(
                 self.config.mongo_uri,
-                serverSelectionTimeoutMS=5000,  # 5 second timeout
-                connectTimeoutMS=5000
+                serverSelectionTimeoutMS=10000,  # 10 second timeout (DNS can be slow)
+                connectTimeoutMS=10000,
             )
 
             # Test connection
-            self._client.admin.command('ping')
+            self._client.admin.command("ping")
 
             # Get database
             self._db = self._client[self.config.mongo_db_name]
@@ -60,6 +66,48 @@ class MongoDBClient:
             self._ensure_indexes()
 
             logger.info(f"Connected to MongoDB at {self.config.mongo_uri}")
+
+        except InvalidURI as e:
+            # Special handling for invalid URI errors (often due to unescaped passwords)
+            if "password must be escaped" in str(e).lower():
+                raise RuntimeError(
+                    f"MongoDB password contains special characters that need URL encoding.\n"
+                    f"\n"
+                    f"Your password likely contains characters like: # ! % @ $ & + , / : ; = ? @ [ ]\n"
+                    f"\n"
+                    f"Fix this by encoding your password:\n"
+                    f"  python3 -c \"import urllib.parse; print(urllib.parse.quote_plus('your-password'))\"\n"
+                    f"\n"
+                    f"Then use the encoded password in your MONGO_URI in .env\n"
+                    f"Original error: {e}"
+                ) from e
+            else:
+                raise RuntimeError(f"Invalid MongoDB URI: {e}") from e
+
+        except ConfigurationError as e:
+            # DNS resolution errors for mongodb+srv URIs
+            if "DNS operation timed out" in str(
+                e
+            ) or "resolution lifetime expired" in str(e):
+                raise RuntimeError(
+                    f"DNS timeout when connecting to MongoDB Atlas.\n"
+                    f"\n"
+                    f"This usually means:\n"
+                    f"  1. Network/firewall is blocking DNS queries\n"
+                    f"  2. DNS resolver issues on your system\n"
+                    f"  3. VPN interference\n"
+                    f"\n"
+                    f"Try these fixes:\n"
+                    f"  1. Test network: ping 8.8.8.8\n"
+                    f"  2. Use direct connection instead of mongodb+srv://\n"
+                    f"     Get it from Atlas: Cluster → Connect → Drivers → Connection String Only\n"
+                    f"  3. Try different DNS: Add 'nameserver 8.8.8.8' to /etc/resolv.conf\n"
+                    f"  4. Disable VPN temporarily\n"
+                    f"\n"
+                    f"Original error: {e}"
+                ) from e
+            else:
+                raise RuntimeError(f"MongoDB configuration error: {e}") from e
 
         except (ConnectionFailure, ServerSelectionTimeoutError) as e:
             if self.config.enable_logging:
