@@ -8,10 +8,6 @@ if TYPE_CHECKING:
     from game import SplendorGame
 
 
-def clear_screen() -> None:
-    """Clear terminal screen."""
-    print("\033[2J\033[H", end="")
-
 
 def _get_gem_icon(gem: GemType) -> str:
     """Get emoji/icon for gem type."""
@@ -119,7 +115,7 @@ def render_player_status(game: "SplendorGame") -> None:
 
     for i in range(game.num_players):
         player_name = f"Player {i + 1}"
-        color = _get_player_color(i)
+        color = term.get_player_color(i)
 
         # Calculate score
         card_points = game.board.get_player_points(i)
@@ -161,7 +157,7 @@ def render_player_status(game: "SplendorGame") -> None:
 def render_player_details(game: "SplendorGame", player_idx: int) -> None:
     """Render detailed view for current player."""
     player_name = f"Player {player_idx + 1}"
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
 
     print(f"{term.BOLD}{color}>>> {player_name}'s Turn{term.RESET}")
     print()
@@ -260,7 +256,7 @@ def render_game_end(game: "SplendorGame") -> None:
 
     for rank, (player_idx, total, card_count, card_pts, noble_pts) in enumerate(scores, 1):
         player_name = f"Player {player_idx + 1}"
-        color = _get_player_color(player_idx)
+        color = term.get_player_color(player_idx)
 
         if rank == 1:
             print(
@@ -282,7 +278,7 @@ def render_game_end(game: "SplendorGame") -> None:
 
 def refresh(game: "SplendorGame") -> None:
     """Refresh the entire UI."""
-    clear_screen()
+    term.clear()
     render_header(game)
     render_turn_info(game)
     render_gem_bank(game)
@@ -291,12 +287,3 @@ def refresh(game: "SplendorGame") -> None:
     render_player_status(game)
 
 
-def _get_player_color(player_idx: int) -> str:
-    """Get color for player."""
-    colors = [
-        term.FG_BLUE,
-        term.FG_MAGENTA,
-        term.FG_GREEN,
-        term.FG_CYAN,
-    ]
-    return colors[player_idx % len(colors)]

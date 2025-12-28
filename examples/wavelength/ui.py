@@ -7,10 +7,6 @@ if TYPE_CHECKING:
     from game import WavelengthGame
 
 
-def clear_screen() -> None:
-    """Clear terminal screen."""
-    print("\033[2J\033[H", end="")
-
 
 def render_header(game: "WavelengthGame") -> None:
     """Render game header."""
@@ -180,7 +176,7 @@ def render_game_end(game: "WavelengthGame") -> None:
 
 def refresh(game: "WavelengthGame") -> None:
     """Refresh the entire UI."""
-    clear_screen()
+    term.clear()
     render_header(game)
     render_scores(game)
     render_spectrum(game)

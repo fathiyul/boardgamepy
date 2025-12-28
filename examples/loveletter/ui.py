@@ -7,10 +7,6 @@ if TYPE_CHECKING:
     from game import LoveLetterGame
 
 
-def clear_screen() -> None:
-    """Clear terminal screen."""
-    print("\033[2J\033[H", end="")
-
 
 def render_header(game: "LoveLetterGame") -> None:
     """Render game header."""
@@ -37,7 +33,7 @@ def render_board(game: "LoveLetterGame") -> None:
 
     for i in range(game.num_players):
         player_name = f"Player {i + 1}"
-        color = _get_player_color(i)
+        color = term.get_player_color(i)
 
         status_parts = [f"{color}{player_name}{term.RESET}"]
 
@@ -80,7 +76,7 @@ def render_current_turn(game: "LoveLetterGame") -> None:
         return
 
     player_idx = game.state.current_player_idx
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
     player_name = f"Player {player_idx + 1}"
 
     print(f"{term.BOLD}{color}>>> {player_name}'s Turn{term.RESET}\n")
@@ -88,7 +84,7 @@ def render_current_turn(game: "LoveLetterGame") -> None:
 
 def render_draw(player_idx: int, card) -> None:
     """Render a card draw action."""
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
     player_name = f"Player {player_idx + 1}"
     card_str = f"{card.name}({card.value})"
 
@@ -137,7 +133,7 @@ def render_move(
 ) -> None:
     """Render a move being made."""
     player_idx = int(player_name.split()[-1]) - 1
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
 
     print(f"{term.BOLD}{color}[{player_name}]{term.RESET}")
     print(f"  {term.BOLD}Played:{term.RESET} {term.FG_YELLOW}{card}{term.RESET}")
@@ -228,7 +224,7 @@ def render_history(game: "LoveLetterGame", max_moves: int = 5) -> None:
 
 def refresh(game: "LoveLetterGame") -> None:
     """Refresh the entire UI."""
-    clear_screen()
+    term.clear()
     render_header(game)
     render_game_status(game)
     render_board(game)
@@ -236,7 +232,3 @@ def refresh(game: "LoveLetterGame") -> None:
     render_current_turn(game)
 
 
-def _get_player_color(player_idx: int) -> str:
-    """Get color for player."""
-    colors = [term.FG_BLUE, term.FG_MAGENTA, term.FG_GREEN, term.FG_CYAN]
-    return colors[player_idx % len(colors)]

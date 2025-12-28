@@ -7,10 +7,6 @@ if TYPE_CHECKING:
     from game import WythoffGame
 
 
-def clear_screen() -> None:
-    """Clear terminal screen."""
-    print("\033[2J\033[H", end="")
-
 
 def render_header(game: "WythoffGame") -> None:
     """Render game header."""
@@ -142,7 +138,7 @@ def render_history(game: "WythoffGame", max_moves: int = 5) -> None:
 
 def refresh(game: "WythoffGame") -> None:
     """Refresh the entire UI."""
-    clear_screen()
+    term.clear()
     render_header(game)
     render_board(game)
     render_history(game)

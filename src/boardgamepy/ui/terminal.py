@@ -83,3 +83,91 @@ def colorize(text: str, fg: str | None = None, bg: str | None = None, bold: bool
     if codes:
         return "".join(codes) + text + RESET
     return text
+
+
+# Player colors for multi-player games
+PLAYER_COLORS = [
+    FG_BRIGHT_CYAN,
+    FG_BRIGHT_YELLOW,
+    FG_BRIGHT_GREEN,
+    FG_BRIGHT_MAGENTA,
+    FG_BRIGHT_BLUE,
+    FG_BRIGHT_RED,
+]
+
+
+def get_player_color(player_idx: int) -> str:
+    """
+    Get a consistent color for a player index.
+
+    Args:
+        player_idx: Zero-based player index
+
+    Returns:
+        ANSI color code for the player
+    """
+    return PLAYER_COLORS[player_idx % len(PLAYER_COLORS)]
+
+
+def format_player_name(player_idx: int, name: str | None = None) -> str:
+    """
+    Format a player name with their color.
+
+    Args:
+        player_idx: Zero-based player index
+        name: Optional custom name (defaults to "Player N")
+
+    Returns:
+        Colorized player name
+    """
+    color = get_player_color(player_idx)
+    display_name = name or f"Player {player_idx + 1}"
+    return f"{BOLD}{color}{display_name}{RESET}"
+
+
+def render_section(title: str, color: str = FG_WHITE, width: int = 50) -> None:
+    """
+    Render a section header.
+
+    Args:
+        title: Section title
+        color: Color for the section
+        width: Width of the separator line
+    """
+    print(f"\n{BOLD}{color}{title}{RESET}")
+    print(f"{DIM}{'─' * width}{RESET}")
+
+
+def render_game_end(
+    winner: str | None,
+    scores: list[tuple[str, int]] | None = None,
+    width: int = 50,
+) -> None:
+    """
+    Render a standard game end banner.
+
+    Args:
+        winner: Winner name/description, or None for draw
+        scores: Optional list of (player_name, score) tuples
+        width: Banner width
+    """
+    print()
+    print(f"{BOLD}{FG_BRIGHT_MAGENTA}{'═' * width}{RESET}")
+    print(f"{BOLD}{FG_BRIGHT_CYAN}  GAME OVER{RESET}")
+    print(f"{BOLD}{FG_BRIGHT_MAGENTA}{'═' * width}{RESET}")
+    print()
+
+    if winner:
+        print(f"  {BOLD}{FG_BRIGHT_GREEN}Winner: {winner}{RESET}")
+    else:
+        print(f"  {BOLD}{FG_YELLOW}It's a draw!{RESET}")
+
+    if scores:
+        print()
+        print(f"  {BOLD}Final Scores:{RESET}")
+        for name, score in scores:
+            print(f"    {name}: {BOLD}{score}{RESET}")
+
+    print()
+    print(f"{BOLD}{FG_BRIGHT_MAGENTA}{'═' * width}{RESET}")
+    print()

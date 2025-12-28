@@ -7,11 +7,6 @@ if TYPE_CHECKING:
     from game import CoupGame
 
 
-def clear_screen() -> None:
-    """Clear terminal screen."""
-    print("\033[2J\033[H", end="")
-
-
 def render_header(game: "CoupGame") -> None:
     """Render game header."""
     print(f"\n{term.BOLD}{term.FG_RED}{'=' * 60}{term.RESET}")
@@ -25,7 +20,7 @@ def render_board(game: "CoupGame") -> None:
 
     for i in range(game.num_players):
         player_name = f"Player {i + 1}"
-        color = _get_player_color(i)
+        color = term.get_player_color(i)
 
         influence_count = game.board.get_influence_count(i)
         coins = game.board.coins[i]
@@ -64,7 +59,7 @@ def render_current_turn(game: "CoupGame") -> None:
         return
 
     player_idx = game.state.current_player_idx
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
     player_name = f"Player {player_idx + 1}"
     coins = game.board.coins[player_idx]
 
@@ -96,7 +91,7 @@ def render_move(
 ) -> None:
     """Render a move being made."""
     player_idx = int(player_name.split()[-1]) - 1
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
 
     print(f"{term.BOLD}{color}[{player_name}]{term.RESET}")
 
@@ -174,21 +169,8 @@ def render_history(game: "CoupGame", max_moves: int = 5) -> None:
 
 def refresh(game: "CoupGame") -> None:
     """Refresh the entire UI."""
-    clear_screen()
+    term.clear()
     render_header(game)
     render_board(game)
     render_history(game)
     render_current_turn(game)
-
-
-def _get_player_color(player_idx: int) -> str:
-    """Get color for player."""
-    colors = [
-        term.FG_BLUE,
-        term.FG_MAGENTA,
-        term.FG_GREEN,
-        term.FG_CYAN,
-        term.FG_YELLOW,
-        term.FG_RED,
-    ]
-    return colors[player_idx % len(colors)]

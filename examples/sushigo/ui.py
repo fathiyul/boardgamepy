@@ -7,10 +7,6 @@ if TYPE_CHECKING:
     from game import SushiGoGame
 
 
-def clear_screen() -> None:
-    """Clear terminal screen."""
-    print("\033[2J\033[H", end="")
-
 
 def render_header(game: "SushiGoGame") -> None:
     """Render game header."""
@@ -30,7 +26,7 @@ def render_round_info(game: "SushiGoGame") -> None:
         pudding = game.board.pudding_counts[i]
 
         player_name = f"Player {i + 1}"
-        color = _get_player_color(i)
+        color = term.get_player_color(i)
 
         # Show round breakdown if available
         round_scores = game.state.round_scores.get(i, [])
@@ -50,7 +46,7 @@ def render_player_collection(game: "SushiGoGame", player_idx: int) -> None:
         return
 
     player_name = f"Player {player_idx + 1}"
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
 
     print(f"{term.BOLD}{color}{player_name}'s Collection:{term.RESET}")
 
@@ -137,7 +133,7 @@ def render_card_selection(game: "SushiGoGame", player_idx: int) -> None:
         return
 
     player_name = f"Player {player_idx + 1}"
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
 
     print(f"{term.BOLD}{color}>>> {player_name}'s Turn{term.RESET}")
     print(f"{term.BOLD}Available Cards to Play:{term.RESET}")
@@ -172,7 +168,7 @@ def render_card_selection(game: "SushiGoGame", player_idx: int) -> None:
 def render_play_action(player_name: str, card_name: str, reasoning: str | None = None) -> None:
     """Render a card being played."""
     player_idx = int(player_name.split()[-1]) - 1
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
 
     print(f"{term.BOLD}{color}[{player_name}]{term.RESET} played: {term.FG_YELLOW}{card_name}{term.RESET}")
     if reasoning:
@@ -193,7 +189,7 @@ def render_round_end(game: "SushiGoGame") -> None:
     print(f"{term.BOLD}Round Scores:{term.RESET}")
     for i in range(game.num_players):
         player_name = f"Player {i + 1}"
-        color = _get_player_color(i)
+        color = term.get_player_color(i)
 
         round_scores = game.state.round_scores[i]
         if round_scores:
@@ -221,7 +217,7 @@ def render_game_end(game: "SushiGoGame") -> None:
         player_name = f"Player {i + 1}"
         pudding_count = game.board.pudding_counts[i]
         pudding_pts = pudding_scores[i]
-        color = _get_player_color(i)
+        color = term.get_player_color(i)
 
         if pudding_pts != 0:
             print(f"  {color}{player_name:10}{term.RESET} {pudding_count} puddings = {pudding_pts:+3} pts")
@@ -240,7 +236,7 @@ def render_game_end(game: "SushiGoGame") -> None:
 
     for rank, (player_idx, score) in enumerate(sorted_players, 1):
         player_name = f"Player {player_idx + 1}"
-        color = _get_player_color(player_idx)
+        color = term.get_player_color(player_idx)
 
         if rank == 1:
             print(f"  {term.FG_YELLOW}🏆 {rank}. {color}{player_name:10}{term.RESET} {score} points{term.RESET}")
@@ -256,20 +252,10 @@ def render_game_end(game: "SushiGoGame") -> None:
 
 def refresh(game: "SushiGoGame") -> None:
     """Refresh the entire UI."""
-    clear_screen()
+    term.clear()
     render_header(game)
     render_round_info(game)
     render_all_collections(game)
     render_current_turn(game)
 
 
-def _get_player_color(player_idx: int) -> str:
-    """Get color for player."""
-    colors = [
-        term.FG_BLUE,
-        term.FG_MAGENTA,
-        term.FG_GREEN,
-        term.FG_CYAN,
-        term.FG_YELLOW,
-    ]
-    return colors[player_idx % len(colors)]

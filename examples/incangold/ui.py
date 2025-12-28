@@ -7,10 +7,6 @@ if TYPE_CHECKING:
     from game import IncanGoldGame
 
 
-def clear_screen() -> None:
-    """Clear terminal screen."""
-    print("\033[2J\033[H", end="")
-
 
 def render_header(game: "IncanGoldGame") -> None:
     """Render game header."""
@@ -67,7 +63,7 @@ def render_player_status(game: "IncanGoldGame") -> None:
 
     for i in range(game.num_players):
         player_name = f"Player {i + 1}"
-        color = _get_player_color(i)
+        color = term.get_player_color(i)
 
         score = game.board.get_total_score(i)
         gems = game.board.player_gems[i]
@@ -103,7 +99,7 @@ def render_player_status(game: "IncanGoldGame") -> None:
 def render_decision_prompt(game: "IncanGoldGame", player_idx: int) -> None:
     """Render decision prompt for current player."""
     player_name = f"Player {player_idx + 1}"
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
 
     print(f"{term.BOLD}{color}>>> {player_name}'s Decision{term.RESET}")
     print()
@@ -122,7 +118,7 @@ def render_decision_prompt(game: "IncanGoldGame", player_idx: int) -> None:
 def render_decision(player_name: str, decision: str, reasoning: str | None = None) -> None:
     """Render a player's decision."""
     player_idx = int(player_name.split()[-1]) - 1
-    color = _get_player_color(player_idx)
+    color = term.get_player_color(player_idx)
 
     if decision == "continue":
         decision_text = f"{term.FG_GREEN}CONTINUES exploring{term.RESET}"
@@ -166,7 +162,7 @@ def render_distribution(game: "IncanGoldGame", returners: set[int]) -> None:
         print(f"{term.BOLD}Returners collect gems from path:{term.RESET}")
         for player_idx in returners:
             player_name = f"Player {player_idx + 1}"
-            color = _get_player_color(player_idx)
+            color = term.get_player_color(player_idx)
             print(f"  {color}{player_name}{term.RESET} receives {term.FG_YELLOW}{each} gems{term.RESET}")
         print()
 
@@ -187,7 +183,7 @@ def render_round_end(game: "IncanGoldGame") -> None:
 
     for rank, player_idx in enumerate(sorted_players, 1):
         player_name = f"Player {player_idx + 1}"
-        color = _get_player_color(player_idx)
+        color = term.get_player_color(player_idx)
         score = game.board.get_total_score(player_idx)
         gems = game.board.player_gems[player_idx]
         artifacts = game.board.player_artifacts[player_idx]
@@ -224,7 +220,7 @@ def render_game_end(game: "IncanGoldGame") -> None:
 
     for rank, player_idx in enumerate(sorted_players, 1):
         player_name = f"Player {player_idx + 1}"
-        color = _get_player_color(player_idx)
+        color = term.get_player_color(player_idx)
         score = game.board.get_total_score(player_idx)
 
         if rank == 1:
@@ -241,7 +237,7 @@ def render_game_end(game: "IncanGoldGame") -> None:
 
 def refresh(game: "IncanGoldGame") -> None:
     """Refresh the entire UI."""
-    clear_screen()
+    term.clear()
     render_header(game)
     render_round_info(game)
     render_temple_path(game)
@@ -249,16 +245,3 @@ def refresh(game: "IncanGoldGame") -> None:
     render_player_status(game)
 
 
-def _get_player_color(player_idx: int) -> str:
-    """Get color for player."""
-    colors = [
-        term.FG_BLUE,
-        term.FG_MAGENTA,
-        term.FG_GREEN,
-        term.FG_CYAN,
-        term.FG_YELLOW,
-        term.FG_RED,
-        term.FG_BLUE,
-        term.FG_MAGENTA,
-    ]
-    return colors[player_idx % len(colors)]
