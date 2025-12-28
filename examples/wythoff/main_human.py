@@ -53,21 +53,18 @@ def setup_players(game: WythoffGame, logging_config: LoggingConfig) -> tuple[str
     print(f"\nYou will play as {human_player} ({player_name})")
     print("The other player will be AI\n")
 
-    # Create LLM for AI player
-    api_key = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
-    if os.getenv("OPENROUTER_API_KEY"):
-        base_llm = ChatOpenAI(
-            model=logging_config.openrouter_model,
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            base_url="https://openrouter.ai/api/v1",
-        )
-        model_name = logging_config.openrouter_model
-    else:
-        base_llm = ChatOpenAI(
-            model=logging_config.openai_model,
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
-        model_name = logging_config.openai_model
+    # Check for API key
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_key:
+        raise ValueError("OPENROUTER_API_KEY is required")
+
+    # AI player uses per-player model config
+    model = logging_config.default_model
+    base_llm = ChatOpenAI(
+        model=model,
+        api_key=openrouter_key,
+        base_url="https://openrouter.ai/api/v1",
+    )
 
     # Configure players
     for player in game.players:
@@ -81,9 +78,9 @@ def setup_players(game: WythoffGame, logging_config: LoggingConfig) -> tuple[str
                 prompt_builder=WythoffPromptBuilder(),
                 output_schema=RemoveFromAAction.OutputSchema,
             )
-            player.agent = LoggedLLMAgent(base_agent, model_name)
+            player.agent = LoggedLLMAgent(base_agent, model)
             player.agent_type = "ai"
-            player.name = "AI"
+            player.name = logging_config.get_short_model_name(model)
 
     print("=" * 60)
     input("Press Enter to start the game...")

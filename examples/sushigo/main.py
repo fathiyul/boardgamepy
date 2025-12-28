@@ -38,9 +38,15 @@ class SushiGoRunner(GameRunner):
 
         action = PlayCardAction()
 
-        if action.validate(game, player, card_to_play=llm_output.card_to_play):
-            ui.render_play_action(player.team, llm_output.card_to_play, llm_output.reasoning)
-            action.apply(game, player, card_to_play=llm_output.card_to_play)
+        # Get second card if provided (for chopsticks)
+        second_card = getattr(llm_output, 'second_card', None)
+
+        if action.validate(game, player, card_to_play=llm_output.card_to_play, second_card=second_card):
+            if second_card:
+                ui.render_play_action(player.team, f"{llm_output.card_to_play} + {second_card} (Chopsticks)", llm_output.reasoning)
+            else:
+                ui.render_play_action(player.team, llm_output.card_to_play, llm_output.reasoning)
+            action.apply(game, player, card_to_play=llm_output.card_to_play, second_card=second_card)
 
             state_after = copy.deepcopy(game.state)
             board_after = copy.deepcopy(game.board)
@@ -58,7 +64,7 @@ class SushiGoRunner(GameRunner):
                     board_before=board_before,
                     board_after=board_after,
                     action=action,
-                    action_params={"card_to_play": llm_output.card_to_play},
+                    action_params={"card_to_play": llm_output.card_to_play, "second_card": second_card},
                     action_valid=True,
                     llm_call_data=llm_call_data,
                 )

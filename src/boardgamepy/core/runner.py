@@ -78,47 +78,76 @@ class GameRunner:
         self.ui = ui_module
         self.game_dir = game_dir or Path.cwd()
         self.turn_delay = turn_delay
+        self.max_consecutive_errors = 3  # Auto-lose after this many consecutive errors
 
         # Will be set during run()
         self.game: Game | None = None
         self.game_logger: GameLogger | None = None
         self.logging_config: LoggingConfig | None = None
+        self._player_error_counts: dict[str, int] = {}  # Track consecutive errors per player
 
     def create_llm(self):
-        """Create LLM instance based on available API keys."""
+        """Create LLM instance using default model. Convenience method for single-model games."""
         from langchain_openai import ChatOpenAI
 
         openrouter_key = os.getenv("OPENROUTER_API_KEY")
-        openai_key = os.getenv("OPENAI_API_KEY")
+        if not openrouter_key:
+            raise ValueError("OPENROUTER_API_KEY is required")
 
-        if openrouter_key:
-            return ChatOpenAI(
-                model=self.logging_config.openrouter_model,
-                api_key=openrouter_key,
-                base_url="https://openrouter.ai/api/v1",
-            ), self.logging_config.openrouter_model
-        elif openai_key:
-            return ChatOpenAI(
-                model=self.logging_config.openai_model,
-                api_key=openai_key,
-            ), self.logging_config.openai_model
-        else:
-            raise ValueError(
-                "No API key found. Set OPENROUTER_API_KEY or OPENAI_API_KEY"
-            )
+        model = self.logging_config.default_model
+        return ChatOpenAI(
+            model=model,
+            api_key=openrouter_key,
+            base_url="https://openrouter.ai/api/v1",
+        ), model
+
+    def create_llm_for_player(self, player_idx: int):
+        """Create LLM instance for a specific player."""
+        from langchain_openai import ChatOpenAI
+
+        openrouter_key = os.getenv("OPENROUTER_API_KEY")
+        if not openrouter_key:
+            raise ValueError("OPENROUTER_API_KEY is required")
+
+        model = self.logging_config.get_model_for_player(player_idx)
+        return ChatOpenAI(
+            model=model,
+            api_key=openrouter_key,
+            base_url="https://openrouter.ai/api/v1",
+        ), model
 
     def setup_ai_agents(self, game: Game) -> None:
-        """Configure AI agents for all players."""
-        llm, model_name = self.create_llm()
+        """Configure AI agents for all players with per-player models."""
         prompt_builder = self.prompt_builder_class()
 
-        for player in game.players:
+        # Track model usage for naming with duplicates
+        model_counts: dict[str, int] = {}
+        model_instances: dict[str, int] = {}
+
+        # First pass: count model occurrences
+        for i in range(len(game.players)):
+            model = self.logging_config.get_model_for_player(i)
+            short_name = self.logging_config.get_short_model_name(model)
+            model_counts[short_name] = model_counts.get(short_name, 0) + 1
+
+        # Second pass: setup agents with proper names
+        for i, player in enumerate(game.players):
+            llm, model_name = self.create_llm_for_player(i)
             base_agent = LLMAgent(
                 llm=llm,
                 prompt_builder=prompt_builder,
                 output_schema=self.output_schema,
             )
             player.agent = LoggedLLMAgent(base_agent, model_name)
+
+            # Set player name to model name
+            short_name = self.logging_config.get_short_model_name(model_name)
+            if model_counts[short_name] > 1:
+                # Multiple players using same model - add instance number
+                model_instances[short_name] = model_instances.get(short_name, 0) + 1
+                player.name = f"{short_name} ({model_instances[short_name]})"
+            else:
+                player.name = short_name
 
     def get_action_params(self, llm_output: BaseModel) -> dict:
         """
@@ -141,6 +170,47 @@ class GameRunner:
         Default does nothing - games should override for their specific UI needs.
         """
         pass
+
+    def _get_player_key(self, player: Player) -> str:
+        """Get unique key for tracking player errors."""
+        return f"{player.team}_{player.name}"
+
+    def _handle_player_error(self, game: Game, player: Player, error_msg: str) -> bool:
+        """
+        Handle a player error, track consecutive errors, and auto-eliminate if needed.
+
+        Returns True if player was eliminated (game should end or skip player).
+        """
+        key = self._get_player_key(player)
+        self._player_error_counts[key] = self._player_error_counts.get(key, 0) + 1
+        error_count = self._player_error_counts[key]
+
+        print(f"Error for {player.team}: {error_msg}")
+        print(f"  Consecutive errors: {error_count}/{self.max_consecutive_errors}")
+
+        if error_count >= self.max_consecutive_errors:
+            print(f"\n⚠️  {player.team} ({player.name}) has {error_count} consecutive errors!")
+            print(f"    AUTO-ELIMINATED from the game.\n")
+
+            # Mark game as over - the other player/team wins
+            game.state.is_over = True
+
+            # Try to set winner to another player/team
+            if hasattr(game, 'players') and len(game.players) > 1:
+                for p in game.players:
+                    if p.team != player.team:
+                        game.state.winner = p.team
+                        break
+
+            return True
+
+        time.sleep(2)
+        return False
+
+    def _reset_player_errors(self, player: Player) -> None:
+        """Reset consecutive error count for a player on successful turn."""
+        key = self._get_player_key(player)
+        self._player_error_counts[key] = 0
 
     def run_turn(self, game: Game, player: Player, game_logger: GameLogger) -> bool:
         """
@@ -174,8 +244,7 @@ class GameRunner:
         try:
             llm_output = player.agent.get_action(game, player)
         except Exception as e:
-            print(f"Error getting action: {e}")
-            time.sleep(2)
+            eliminated = self._handle_player_error(game, player, str(e))
             return False
 
         # Extract parameters
@@ -188,6 +257,8 @@ class GameRunner:
         action = self.action_class()
 
         if action.validate(game, player, **params):
+            # Reset error count on successful action
+            self._reset_player_errors(player)
             action.apply(game, player, **params)
 
             # Capture state after
@@ -215,8 +286,7 @@ class GameRunner:
 
             return True
         else:
-            print(f"Invalid action: {params}")
-            time.sleep(2)
+            eliminated = self._handle_player_error(game, player, f"Invalid action: {params}")
             return False
 
     def run_loop(self, game: Game, game_logger: GameLogger) -> None:
@@ -287,6 +357,9 @@ class GameRunner:
         # Configure AI agents
         self.setup_ai_agents(self.game)
 
+        # Reset error counts for new game
+        self._player_error_counts = {}
+
         # Hook for custom initialization
         self.on_game_start(self.game)
 
@@ -335,9 +408,9 @@ class GameRunner:
             load_dotenv()  # Also check current directory and parents
 
             # Check for API key
-            if not os.getenv("OPENROUTER_API_KEY") and not os.getenv("OPENAI_API_KEY"):
-                print("Error: No API key found!")
-                print("Set OPENROUTER_API_KEY or OPENAI_API_KEY environment variable")
+            if not os.getenv("OPENROUTER_API_KEY"):
+                print("Error: OPENROUTER_API_KEY not found!")
+                print("Set OPENROUTER_API_KEY environment variable")
                 return
 
             try:

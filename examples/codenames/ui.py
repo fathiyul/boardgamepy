@@ -110,6 +110,17 @@ def render_status(game: "CodenamesGame", mode: Literal["operatives", "spymaster"
     print(line1)
     print(f"{term.FG_BRIGHT_WHITE}{clue_txt}{term.RESET}")
 
+    # Show players by team
+    print()
+    print(f"{term.BOLD}Players:{term.RESET}")
+    for t in ["Red", "Blue"]:
+        t_color = _team_fg(t)
+        print(f"  {t_color}{t}:{term.RESET}")
+        for player in game.players:
+            if player.team == t:
+                name = player.name if player.name else f"{t} {player.role}"
+                print(f"    {player.role}: {name}")
+
 
 def render_board(game: "CodenamesGame", mode: Literal["operatives", "spymaster"]) -> None:
     """Render the 5x5 game board."""

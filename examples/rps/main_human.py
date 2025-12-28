@@ -35,34 +35,31 @@ def setup_game(game: StrategyRPSGame, logging_config: LoggingConfig) -> str:
     print(f"\nWelcome, {player_name}!")
     print("You will play against an AI opponent.\n")
 
-    # Create LLM for AI player
-    if os.getenv("OPENROUTER_API_KEY"):
-        base_llm = ChatOpenAI(
-            model=logging_config.openrouter_model,
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            base_url="https://openrouter.ai/api/v1",
-        )
-        model_name = logging_config.openrouter_model
-    else:
-        base_llm = ChatOpenAI(
-            model=logging_config.openai_model,
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
-        model_name = logging_config.openai_model
+    # Check for API key
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_key:
+        raise ValueError("OPENROUTER_API_KEY is required")
 
     # Player 1 = Human, Player 2 = AI
     game.players[0].agent = RPSHumanAgent()
     game.players[0].agent_type = "human"
     game.players[0].name = player_name
 
+    # AI player uses per-player model config
+    model = logging_config.get_model_for_player(1)
+    base_llm = ChatOpenAI(
+        model=model,
+        api_key=openrouter_key,
+        base_url="https://openrouter.ai/api/v1",
+    )
     base_agent = LLMAgent(
         llm=base_llm,
         prompt_builder=StrategyRPSPromptBuilder(),
         output_schema=StrategyChooseAction.OutputSchema,
     )
-    game.players[1].agent = LoggedLLMAgent(base_agent, model_name)
+    game.players[1].agent = LoggedLLMAgent(base_agent, model)
     game.players[1].agent_type = "ai"
-    game.players[1].name = "AI"
+    game.players[1].name = logging_config.get_short_model_name(model)
 
     print("=" * 60)
     input("Press Enter to start the game...")

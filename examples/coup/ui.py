@@ -19,7 +19,9 @@ def render_board(game: "CoupGame") -> None:
     print(f"{term.BOLD}Players:{term.RESET}\n")
 
     for i in range(game.num_players):
-        player_name = f"Player {i + 1}"
+        player = game.players[i] if i < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{i + 1} ({name})" if name else f"Player {i + 1}"
         color = term.get_player_color(i)
 
         influence_count = game.board.get_influence_count(i)
@@ -42,7 +44,7 @@ def render_board(game: "CoupGame") -> None:
         else:
             coin_display = f"{term.DIM}(no coins){term.RESET}"
 
-        print(f"  {color}{player_name:10}{term.RESET} {status:30} {coin_display}")
+        print(f"  {color}{player_label:25}{term.RESET} {status:30} {coin_display}")
 
         # Revealed cards
         revealed = [card for card in game.board.influence[i] if card.revealed]
@@ -60,10 +62,12 @@ def render_current_turn(game: "CoupGame") -> None:
 
     player_idx = game.state.current_player_idx
     color = term.get_player_color(player_idx)
-    player_name = f"Player {player_idx + 1}"
+    player = game.players[player_idx] if player_idx < len(game.players) else None
+    name = player.name if player and player.name else None
+    player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
     coins = game.board.coins[player_idx]
 
-    print(f"{term.BOLD}{color}>>> {player_name}'s Turn{term.RESET}")
+    print(f"{term.BOLD}{color}>>> {player_label}'s Turn{term.RESET}")
 
     # Show player's influence
     your_cards = game.board.influence[player_idx]
@@ -123,13 +127,16 @@ def render_game_end(game: "CoupGame") -> None:
     print(f"{term.BOLD}{term.FG_GREEN}GAME OVER!{term.RESET}")
 
     if game.state.winner is not None:
-        winner_name = f"Player {game.state.winner + 1}"
+        winner_idx = game.state.winner
+        player = game.players[winner_idx] if winner_idx < len(game.players) else None
+        name = player.name if player and player.name else None
+        winner_label = f"P{winner_idx + 1} ({name})" if name else f"Player {winner_idx + 1}"
         winner_cards = [
-            card for card in game.board.influence[game.state.winner] if not card.revealed
+            card for card in game.board.influence[winner_idx] if not card.revealed
         ]
         cards_str = ", ".join(str(c) for c in winner_cards)
 
-        print(f"{term.BOLD}{term.FG_YELLOW}🏆 {winner_name} WINS! 🏆{term.RESET}")
+        print(f"{term.BOLD}{term.FG_YELLOW}🏆 {winner_label} WINS! 🏆{term.RESET}")
         print(f"{term.BOLD}Winning Cards:{term.RESET} {term.FG_CYAN}{cards_str}{term.RESET}")
 
     print(f"{term.BOLD}{term.FG_GREEN}{'=' * 60}{term.RESET}\n")

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from boardgamepy import Action
-from cards import Card
+from cards import Card, CardType
 
 if TYPE_CHECKING:
     from game import SushiGoGame
@@ -16,6 +16,10 @@ class PlayCardOutput(BaseModel):
 
     card_to_play: str = Field(
         ..., description="Which card from your hand to play (exact card name)"
+    )
+    second_card: str | None = Field(
+        None,
+        description="Optional second card to play when using Chopsticks (puts Chopsticks back in hand)"
     )
     reasoning: str | None = Field(None, description="Why you chose this card")
 
@@ -32,6 +36,7 @@ class PlayCardAction(Action["SushiGoGame"]):
         game: "SushiGoGame",
         player: "Player",
         card_to_play: str,
+        second_card: str | None = None,
         **kwargs,
     ) -> bool:
         """Validate card play."""
@@ -45,30 +50,65 @@ class PlayCardAction(Action["SushiGoGame"]):
         hand = game.board.hands[player_idx]
         card_obj = self._find_card_by_name(hand, card_to_play)
 
-        return card_obj is not None
+        if card_obj is None:
+            return False
+
+        # If using chopsticks (second card provided)
+        if second_card:
+            # Must have chopsticks in collection
+            collection = game.board.collections[player_idx]
+            has_chopsticks = any(c.type == CardType.CHOPSTICKS for c in collection)
+            if not has_chopsticks:
+                return False
+
+            # Must have second card in hand (different from first)
+            second_obj = self._find_card_by_name(hand, second_card)
+            if second_obj is None:
+                return False
+            # Cards must be different instances (can't play same card twice)
+            if second_obj.id == card_obj.id:
+                return False
+
+        return True
 
     def apply(
         self,
         game: "SushiGoGame",
         player: "Player",
         card_to_play: str,
+        second_card: str | None = None,
         **kwargs,
     ) -> None:
         """Apply card play."""
         player_idx = int(player.team.split()[-1]) - 1
-
-        # Find and play the card
         hand = game.board.hands[player_idx]
+
+        # Find and play the first card
         card_obj = self._find_card_by_name(hand, card_to_play)
 
         if card_obj:
             game.board.play_card(player_idx, card_obj)
+
+            # Handle chopsticks - play second card
+            if second_card:
+                second_obj = self._find_card_by_name(game.board.hands[player_idx], second_card)
+                if second_obj:
+                    game.board.play_card(player_idx, second_obj)
+
+                    # Return chopsticks from collection to hand
+                    collection = game.board.collections[player_idx]
+                    for i, c in enumerate(collection):
+                        if c.type == CardType.CHOPSTICKS:
+                            chopsticks = collection.pop(i)
+                            game.board.hands[player_idx].append(chopsticks)
+                            break
 
             # Log action
             game.history.add_action(
                 self,
                 player,
                 card_name=card_to_play,
+                second_card=second_card,
                 player_name=player.team,
             )
 

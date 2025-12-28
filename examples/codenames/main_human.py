@@ -11,8 +11,8 @@ from data import load_codenames
 from prompts import SpymasterPromptBuilder, OperativesPromptBuilder
 from actions import ClueAction, GuessAction, PassAction
 from human_agent import CodenamesHumanAgent
-from config import config
 import ui
+import os
 import copy
 
 # Setup logging for invalid actions
@@ -44,6 +44,12 @@ def setup_players(
     print("\n" + "=" * 60)
     print("PLAYER CONFIGURATION")
     print("=" * 60)
+
+    # Ask for player name
+    human_name = input("\nEnter your name: ").strip()
+    if not human_name:
+        human_name = "Human"
+
     print("\nWhich player do you want to be?\n")
 
     # Ask for team
@@ -70,39 +76,46 @@ def setup_players(
             break
         print("Please enter 's' for Spymaster or 'o' for Operatives")
 
-    print(f"\n✓ You will play as {human_team} {human_role}")
+    print(f"\n✓ You ({human_name}) will play as {human_team} {human_role}")
     print(f"✓ All other players will be AI\n")
 
-    # Create base LLM for AI players
-    base_llm = ChatOpenAI(
-        model=logging_config.openrouter_model,
-        api_key=config.OPENROUTER_API_KEY,
-        base_url="https://openrouter.ai/api/v1",
-    )
-    model_name = logging_config.openrouter_model
+    # Check for API key
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_key:
+        raise ValueError("OPENROUTER_API_KEY is required")
 
-    # Configure each player
-    for player in game.players:
+    # Configure each player with per-player models
+    for i, player in enumerate(game.players):
         if player.team == human_team and player.role == human_role:
             # This is the human player
             player.agent = CodenamesHumanAgent()
             player.agent_type = "human"
+            player.name = human_name
         else:
-            # AI player
+            # AI player - use per-player model
+            model = logging_config.get_model_for_player(i)
+            short_name = logging_config.get_short_model_name(model)
+            llm = ChatOpenAI(
+                model=model,
+                api_key=openrouter_key,
+                base_url="https://openrouter.ai/api/v1",
+            )
+
             if player.role == "Spymaster":
                 base_agent = LLMAgent(
-                    llm=base_llm,
+                    llm=llm,
                     prompt_builder=SpymasterPromptBuilder(),
                     output_schema=ClueAction.OutputSchema,
                 )
             else:  # Operatives
                 base_agent = LLMAgent(
-                    llm=base_llm,
+                    llm=llm,
                     prompt_builder=OperativesPromptBuilder(),
                     output_schema=GuessAction.OutputSchema,
                 )
-            player.agent = LoggedLLMAgent(base_agent, model_name)
+            player.agent = LoggedLLMAgent(base_agent, model)
             player.agent_type = "ai"
+            player.name = short_name
 
     print("=" * 60)
     input("Press Enter to start the game...")

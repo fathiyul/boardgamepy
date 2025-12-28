@@ -16,7 +16,7 @@ def render_header(game: "WavelengthGame") -> None:
 
 
 def render_scores(game: "WavelengthGame") -> None:
-    """Render team scores."""
+    """Render team scores with player names."""
     print(f"{term.BOLD}Round {game.state.round_number}{term.RESET}")
     print(f"{term.BOLD}Scores:{term.RESET}")
 
@@ -32,6 +32,32 @@ def render_scores(game: "WavelengthGame") -> None:
             print(f"  {color}{term.BOLD}► {team_name:8}{term.RESET} {bar} ({score}/{target})")
         else:
             print(f"  {color}{team_name:10}{term.RESET} {bar} ({score}/{target})")
+
+        # Show team members with their roles
+        team_name = f"Team {team_idx + 1}"
+        team_players = [p for p in game.players if p.team == team_name]
+        opponent_idx = 0  # Track which opponent we're on
+        for player in team_players:
+            name = player.name if player.name else "AI"
+            if player.role == "Psychic":
+                role_icon = "🔮"
+                role_label = "Psychic"
+            elif player.role == "Guesser":
+                role_icon = "🎯"
+                role_label = "Guesser"
+            elif player.role == "Opponent":
+                # First opponent is the predictor, others are spectators
+                if opponent_idx == 0:
+                    role_icon = "👁️"
+                    role_label = "Predictor"
+                else:
+                    role_icon = "👀"
+                    role_label = "Spectator"
+                opponent_idx += 1
+            else:
+                role_icon = "👤"
+                role_label = player.role
+            print(f"      {role_icon}  {name} - {role_label}")
 
     print()
 

@@ -65,12 +65,22 @@ def render_status(game: "WythoffGame") -> None:
     if game.state.is_over:
         print(f"\n{term.BOLD}{term.FG_GREEN}{'=' * 60}{term.RESET}")
         print(f"{term.BOLD}{term.FG_GREEN}Game Over!{term.RESET}")
-        print(f"{term.BOLD}{term.FG_YELLOW}Winner: {game.state.winner}{term.RESET}")
+        # Get winner player name
+        winner_team = game.state.winner
+        winner_idx = 0 if winner_team == "Player 1" else 1
+        winner_player = game.players[winner_idx] if winner_idx < len(game.players) else None
+        winner_name = winner_player.name if winner_player and winner_player.name else None
+        winner_label = f"P{winner_idx + 1} ({winner_name})" if winner_name else winner_team
+        print(f"{term.BOLD}{term.FG_YELLOW}Winner: {winner_label}{term.RESET}")
         print(f"{term.BOLD}{term.FG_GREEN}{'=' * 60}{term.RESET}\n")
     else:
         current = game.state.current_player
+        current_idx = 0 if current == "Player 1" else 1
+        current_player = game.players[current_idx] if current_idx < len(game.players) else None
+        name = current_player.name if current_player and current_player.name else None
+        player_label = f"P{current_idx + 1} ({name})" if name else current
         color = term.FG_BLUE if current == "Player 1" else term.FG_MAGENTA
-        print(f"{term.BOLD}{color}Current Player: {current}{term.RESET}\n")
+        print(f"{term.BOLD}{color}Current Player: {player_label}{term.RESET}\n")
 
 
 def render_move(

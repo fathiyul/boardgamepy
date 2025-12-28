@@ -25,16 +25,19 @@ def render_round_info(game: "SushiGoGame") -> None:
         total = game.state.total_scores.get(i, 0)
         pudding = game.board.pudding_counts[i]
 
-        player_name = f"Player {i + 1}"
+        # Use player name if available, otherwise default
+        player = game.players[i] if i < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{i + 1} ({name})" if name else f"Player {i + 1}"
         color = term.get_player_color(i)
 
         # Show round breakdown if available
         round_scores = game.state.round_scores.get(i, [])
         if round_scores:
             breakdown = " + ".join(str(s) for s in round_scores)
-            print(f"  {color}{player_name:10}{term.RESET} {total:3} pts  ({breakdown})  🍮×{pudding}")
+            print(f"  {color}{player_label:30}{term.RESET} {total:3} pts  ({breakdown})  🍮×{pudding}")
         else:
-            print(f"  {color}{player_name:10}{term.RESET} {total:3} pts  🍮×{pudding}")
+            print(f"  {color}{player_label:30}{term.RESET} {total:3} pts  🍮×{pudding}")
 
     print()
 
@@ -45,10 +48,13 @@ def render_player_collection(game: "SushiGoGame", player_idx: int) -> None:
     if not collection:
         return
 
-    player_name = f"Player {player_idx + 1}"
+    # Use player name if available
+    player = game.players[player_idx] if player_idx < len(game.players) else None
+    name = player.name if player and player.name else None
+    player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
     color = term.get_player_color(player_idx)
 
-    print(f"{term.BOLD}{color}{player_name}'s Collection:{term.RESET}")
+    print(f"{term.BOLD}{color}{player_label}'s Collection:{term.RESET}")
 
     from cards import CardType
 
@@ -74,6 +80,7 @@ def render_player_collection(game: "SushiGoGame", player_idx: int) -> None:
 
     # Group remaining cards by type
     card_counts = {}
+    card_points = {}  # Track points for nigiri
     shown_card_ids = set()
     for card in wasabi_paired + nigiri_paired:
         shown_card_ids.add(card.id)
@@ -83,6 +90,9 @@ def render_player_collection(game: "SushiGoGame", player_idx: int) -> None:
             continue
         name = card.name
         card_counts[name] = card_counts.get(name, 0) + 1
+        # Track points for unpaired nigiri
+        if card.is_nigiri:
+            card_points[name] = card.type.points
 
     # Display remaining cards with special indicators
     for card_name, count in sorted(card_counts.items()):
@@ -95,6 +105,11 @@ def render_player_collection(game: "SushiGoGame", player_idx: int) -> None:
             display_name = f"{term.FG_YELLOW}🌱 {card_name} (Waiting for Nigiri...){term.RESET}"
         elif "Pudding" in card_name:
             display_name = f"🍮 {card_name}"
+        elif card_name in card_points:
+            # Show nigiri with points
+            pts = card_points[card_name]
+            total_pts = pts * count
+            display_name = f"🍱 {card_name} = {total_pts} pts"
 
         if count > 1:
             print(f"  {display_name} ×{count}")
@@ -132,10 +147,13 @@ def render_card_selection(game: "SushiGoGame", player_idx: int) -> None:
     if not hand:
         return
 
-    player_name = f"Player {player_idx + 1}"
+    # Use player name if available
+    player = game.players[player_idx] if player_idx < len(game.players) else None
+    name = player.name if player and player.name else None
+    player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
     color = term.get_player_color(player_idx)
 
-    print(f"{term.BOLD}{color}>>> {player_name}'s Turn{term.RESET}")
+    print(f"{term.BOLD}{color}>>> {player_label}'s Turn{term.RESET}")
     print(f"{term.BOLD}Available Cards to Play:{term.RESET}")
     print()
 
@@ -188,7 +206,10 @@ def render_round_end(game: "SushiGoGame") -> None:
     # Show round scores
     print(f"{term.BOLD}Round Scores:{term.RESET}")
     for i in range(game.num_players):
-        player_name = f"Player {i + 1}"
+        # Use player name if available
+        player = game.players[i] if i < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{i + 1} ({name})" if name else f"Player {i + 1}"
         color = term.get_player_color(i)
 
         round_scores = game.state.round_scores[i]
@@ -196,7 +217,7 @@ def render_round_end(game: "SushiGoGame") -> None:
             last_score = round_scores[-1]
             total = game.state.total_scores[i]
 
-            print(f"  {color}{player_name:10}{term.RESET} earned {term.FG_YELLOW}{last_score:2}{term.RESET} pts  (Total: {total})")
+            print(f"  {color}{player_label:30}{term.RESET} earned {term.FG_YELLOW}{last_score:2}{term.RESET} pts  (Total: {total})")
 
     print(f"{term.BOLD}{term.FG_GREEN}{'=' * 70}{term.RESET}\n")
 
@@ -214,15 +235,18 @@ def render_game_end(game: "SushiGoGame") -> None:
     pudding_scores = game.board.calculate_pudding_scores()
     print(f"{term.BOLD}Pudding Scoring:{term.RESET}")
     for i in range(game.num_players):
-        player_name = f"Player {i + 1}"
+        # Use player name if available
+        player = game.players[i] if i < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{i + 1} ({name})" if name else f"Player {i + 1}"
         pudding_count = game.board.pudding_counts[i]
         pudding_pts = pudding_scores[i]
         color = term.get_player_color(i)
 
         if pudding_pts != 0:
-            print(f"  {color}{player_name:10}{term.RESET} {pudding_count} puddings = {pudding_pts:+3} pts")
+            print(f"  {color}{player_label:30}{term.RESET} {pudding_count} puddings = {pudding_pts:+3} pts")
         else:
-            print(f"  {color}{player_name:10}{term.RESET} {pudding_count} puddings = {pudding_pts:3} pts")
+            print(f"  {color}{player_label:30}{term.RESET} {pudding_count} puddings = {pudding_pts:3} pts")
 
     print()
 
@@ -235,17 +259,21 @@ def render_game_end(game: "SushiGoGame") -> None:
     )
 
     for rank, (player_idx, score) in enumerate(sorted_players, 1):
-        player_name = f"Player {player_idx + 1}"
+        # Use player name if available
+        player = game.players[player_idx] if player_idx < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
         color = term.get_player_color(player_idx)
 
         if rank == 1:
-            print(f"  {term.FG_YELLOW}🏆 {rank}. {color}{player_name:10}{term.RESET} {score} points{term.RESET}")
+            print(f"  {term.FG_YELLOW}🏆 {rank}. {color}{player_label:30}{term.RESET} {score} points{term.RESET}")
         else:
-            print(f"     {rank}. {color}{player_name:10}{term.RESET} {score} points")
+            print(f"     {rank}. {color}{player_label:30}{term.RESET} {score} points")
 
     if game.state.winner is not None:
-        winner_name = f"Player {game.state.winner + 1}"
-        print(f"\n{term.BOLD}{term.FG_YELLOW}Winner: {winner_name}!{term.RESET}")
+        winner = game.players[game.state.winner] if game.state.winner < len(game.players) else None
+        winner_name = winner.name if winner and winner.name else f"Player {game.state.winner + 1}"
+        print(f"\n{term.BOLD}{term.FG_YELLOW}Winner: P{game.state.winner + 1} ({winner_name})!{term.RESET}")
 
     print(f"{term.BOLD}{term.FG_MAGENTA}{'=' * 70}{term.RESET}\n")
 

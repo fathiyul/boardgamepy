@@ -36,23 +36,25 @@ def setup_game(game: SushiGoGame, logging_config: LoggingConfig) -> tuple[str, i
     print(f"\nWelcome, {player_name}!")
     print(f"You will play against {game.num_players - 1} AI opponent(s).\n")
 
-    # Create LLM for AI players
-    if os.getenv("OPENROUTER_API_KEY"):
-        base_llm = ChatOpenAI(
-            model=logging_config.openrouter_model,
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            base_url="https://openrouter.ai/api/v1",
-        )
-        model_name = logging_config.openrouter_model
-    else:
-        base_llm = ChatOpenAI(
-            model=logging_config.openai_model,
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
-        model_name = logging_config.openai_model
+    # Check for API key
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_key:
+        raise ValueError("OPENROUTER_API_KEY is required")
 
     # Human is always Player 1
     human_idx = 0
+
+    # Track model usage for naming with duplicates
+    model_counts: dict[str, int] = {}
+    model_instances: dict[str, int] = {}
+
+    # First pass: count model occurrences for AI players
+    for i in range(len(game.players)):
+        if i == human_idx:
+            continue
+        model = logging_config.get_model_for_player(i)
+        short_name = logging_config.get_short_model_name(model)
+        model_counts[short_name] = model_counts.get(short_name, 0) + 1
 
     # Configure players
     for i, player in enumerate(game.players):
@@ -61,14 +63,27 @@ def setup_game(game: SushiGoGame, logging_config: LoggingConfig) -> tuple[str, i
             player.agent_type = "human"
             player.name = player_name
         else:
+            model = logging_config.get_model_for_player(i)
+            base_llm = ChatOpenAI(
+                model=model,
+                api_key=openrouter_key,
+                base_url="https://openrouter.ai/api/v1",
+            )
             base_agent = LLMAgent(
                 llm=base_llm,
                 prompt_builder=SushiGoPromptBuilder(),
                 output_schema=PlayCardAction.OutputSchema,
             )
-            player.agent = LoggedLLMAgent(base_agent, model_name)
+            player.agent = LoggedLLMAgent(base_agent, model)
             player.agent_type = "ai"
-            player.name = f"AI {i}"
+
+            # Set player name to model name
+            short_name = logging_config.get_short_model_name(model)
+            if model_counts[short_name] > 1:
+                model_instances[short_name] = model_instances.get(short_name, 0) + 1
+                player.name = f"{short_name} ({model_instances[short_name]})"
+            else:
+                player.name = short_name
 
     print("=" * 70)
     input("Press Enter to start the game...")
@@ -85,15 +100,6 @@ def render_human_view(game: SushiGoGame, human_idx: int, player_name: str):
 
     # Show all collections (public info)
     ui.render_all_collections(game)
-
-    # Show human's hand (with card effects already in agent)
-    # We just show a simple version here; the agent shows detailed effects
-    hand = game.board.hands[human_idx]
-    if hand:
-        print(f"{ui.term.BOLD}Your Hand ({len(hand)} cards):{ui.term.RESET}")
-        for i, card in enumerate(hand, 1):
-            print(f"  {i}. {ui.term.FG_YELLOW}{card.name}{ui.term.RESET}")
-        print()
 
 
 def run_game():
@@ -169,14 +175,23 @@ def run_game():
                 player = game.players[player_idx]
                 action = PlayCardAction()
 
-                if action.validate(game, player, card_to_play=llm_output.card_to_play):
+                # Get second card if provided
+                second_card = getattr(llm_output, 'second_card', None)
+
+                if action.validate(game, player, card_to_play=llm_output.card_to_play, second_card=second_card):
                     # Show what was played
                     if player_idx == human_idx:
-                        print(f"\n{player_name} played: {llm_output.card_to_play}")
+                        if second_card:
+                            print(f"\n{player_name} played: {llm_output.card_to_play} + {second_card} (using Chopsticks)")
+                        else:
+                            print(f"\n{player_name} played: {llm_output.card_to_play}")
                     else:
-                        print(f"{player.name} played: {llm_output.card_to_play}")
+                        if second_card:
+                            print(f"{player.name} played: {llm_output.card_to_play} + {second_card} (using Chopsticks)")
+                        else:
+                            print(f"{player.name} played: {llm_output.card_to_play}")
 
-                    action.apply(game, player, card_to_play=llm_output.card_to_play)
+                    action.apply(game, player, card_to_play=llm_output.card_to_play, second_card=second_card)
 
                     state_after = copy.deepcopy(game.state)
                     board_after = copy.deepcopy(game.board)
@@ -194,7 +209,7 @@ def run_game():
                             board_before=board_before,
                             board_after=board_after,
                             action=action,
-                            action_params={"card_to_play": llm_output.card_to_play},
+                            action_params={"card_to_play": llm_output.card_to_play, "second_card": second_card},
                             action_valid=True,
                             llm_call_data=llm_call_data,
                         )

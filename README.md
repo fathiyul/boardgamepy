@@ -16,8 +16,10 @@ BoardGamePy provides core abstractions for creating board games that can be play
 
 - **Role-based information hiding** - Built-in support for games where different players see different information
 - **AI integration** - First-class support for LLM-powered agents with automatic prompt generation
+- **Per-player model configuration** - Assign different LLM models to different players via `MODEL_PLAYER_N` env vars
 - **Action history tracking** - Automatic logging of all actions for replay, debugging, and AI context
 - **Human/AI hybrid play** - Mix human and AI players in the same game
+- **Error resilience** - 3-strike auto-elimination when a player's model returns consecutive errors
 - **Declarative API** - Define games by subclassing base classes, similar to Django models or Pydantic
 
 ## Installation
@@ -180,15 +182,18 @@ MONGO_DB_NAME=boardgamepy_logs
 ENABLE_LOGGING=true
 LOG_LEVEL=INFO
 
-# LLM Model Defaults
-OPENAI_MODEL=gpt-4o-mini
-OPENROUTER_MODEL=google/gemini-2.5-flash
-
-# API Keys
-OPENAI_API_KEY=your-openai-api-key-here
+# LLM Configuration (OpenRouter)
 OPENROUTER_API_KEY=your-openrouter-api-key-here
+DEFAULT_MODEL=google/gemini-2.5-flash
 
-# LangSmith Tracing
+# Per-player model overrides (optional)
+# Assign different models to different players
+MODEL_PLAYER_1=google/gemini-2.5-flash
+MODEL_PLAYER_2=anthropic/claude-sonnet-4
+MODEL_PLAYER_3=openai/gpt-4o-mini
+MODEL_PLAYER_4=x-ai/grok-3-mini-beta
+
+# LangSmith Tracing (optional)
 LANGCHAIN_TRACING_V2=true
 LANGCHAIN_API_KEY=your-langsmith-api-key-here
 LANGCHAIN_PROJECT=boardgamepy
@@ -306,6 +311,15 @@ python main.py
 - **LLMAgent** - Agent powered by language models
 - **ActionOutput** - Pydantic schemas for structured LLM responses
 
+> **Schema Note:** When defining Pydantic output schemas, avoid using `ge`, `le`, `minimum`, or `maximum` constraints on integer fields as some providers (e.g., Anthropic) don't support them. Use description text instead:
+> ```python
+> # Don't do this:
+> position: int = Field(..., ge=0, le=100)
+>
+> # Do this instead:
+> position: int = Field(..., description="Position (0-100)")
+> ```
+
 ### Information Hiding
 
 The framework enforces role-based information hiding through `Board.get_view(context)`:
@@ -366,7 +380,9 @@ See `examples/codenames/` for a complete reference implementation.
 
 **AI (optional):**
 - langchain-core >=0.1
-- langchain-openai >=0.1
+- langchain-openai >=0.1 (used for OpenRouter API access)
+
+> **Note:** BoardGamePy uses OpenRouter as the LLM provider, which gives access to multiple models (OpenAI, Anthropic, Google, etc.) through a unified API. Get your API key at [openrouter.ai](https://openrouter.ai).
 
 ## License
 

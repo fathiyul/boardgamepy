@@ -17,7 +17,7 @@ class WythoffMoveOutput(BaseModel):
         ...,
         description="Type of move: 'pile_a' (remove from A only), 'pile_b' (remove from B only), 'both' (remove same amount from both)",
     )
-    count: int = Field(..., description="Number of objects to remove", ge=1)
+    count: int = Field(..., description="Number of objects to remove (must be at least 1)")
     reasoning: str | None = Field(None, description="Explanation of move strategy")
 
 

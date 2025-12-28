@@ -20,10 +20,13 @@ def render_game_status(game: "LoveLetterGame") -> None:
     print(f"{term.BOLD}Round {game.state.round_number}{term.RESET}")
     print(f"{term.BOLD}Score:{term.RESET}")
     for i in range(game.num_players):
+        player = game.players[i] if i < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{i + 1} ({name})" if name else f"Player {i + 1}"
         tokens = game.state.scores.get(i, 0)
         bar = "❤️ " * tokens
         target = game.state.target_tokens
-        print(f"  Player {i + 1}: {bar}({tokens}/{target})")
+        print(f"  {player_label}: {bar}({tokens}/{target})")
     print()
 
 
@@ -32,10 +35,12 @@ def render_board(game: "LoveLetterGame") -> None:
     print(f"{term.BOLD}Players:{term.RESET}")
 
     for i in range(game.num_players):
-        player_name = f"Player {i + 1}"
+        player = game.players[i] if i < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{i + 1} ({name})" if name else f"Player {i + 1}"
         color = term.get_player_color(i)
 
-        status_parts = [f"{color}{player_name}{term.RESET}"]
+        status_parts = [f"{color}{player_label}{term.RESET}"]
 
         if i in game.board.eliminated:
             status_parts.append(f"{term.DIM}[ELIMINATED]{term.RESET}")
@@ -77,9 +82,11 @@ def render_current_turn(game: "LoveLetterGame") -> None:
 
     player_idx = game.state.current_player_idx
     color = term.get_player_color(player_idx)
-    player_name = f"Player {player_idx + 1}"
+    player = game.players[player_idx] if player_idx < len(game.players) else None
+    name = player.name if player and player.name else None
+    player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
 
-    print(f"{term.BOLD}{color}>>> {player_name}'s Turn{term.RESET}\n")
+    print(f"{term.BOLD}{color}>>> {player_label}'s Turn{term.RESET}\n")
 
 
 def render_draw(player_idx: int, card) -> None:
@@ -159,13 +166,16 @@ def render_round_end(game: "LoveLetterGame") -> None:
     print(f"{term.BOLD}{term.FG_GREEN}Round {game.state.round_number} Over!{term.RESET}")
 
     if game.state.round_winner is not None:
-        winner_name = f"Player {game.state.round_winner + 1}"
-        winner_hand = game.board.hands[game.state.round_winner]
+        winner_idx = game.state.round_winner
+        player = game.players[winner_idx] if winner_idx < len(game.players) else None
+        name = player.name if player and player.name else None
+        winner_label = f"P{winner_idx + 1} ({name})" if name else f"Player {winner_idx + 1}"
+        winner_hand = game.board.hands[winner_idx]
         if winner_hand:
             winner_card = winner_hand[0]
-            print(f"{term.BOLD}Winner: {term.FG_YELLOW}{winner_name}{term.RESET} with {term.FG_CYAN}{winner_card}{term.RESET}")
+            print(f"{term.BOLD}Winner: {term.FG_YELLOW}{winner_label}{term.RESET} with {term.FG_CYAN}{winner_card}{term.RESET}")
         else:
-            print(f"{term.BOLD}Winner: {term.FG_YELLOW}{winner_name}{term.RESET}")
+            print(f"{term.BOLD}Winner: {term.FG_YELLOW}{winner_label}{term.RESET}")
 
     print(f"{term.BOLD}{term.FG_GREEN}{'=' * 60}{term.RESET}\n")
 
@@ -179,14 +189,20 @@ def render_game_end(game: "LoveLetterGame") -> None:
     print(f"{term.BOLD}{term.FG_MAGENTA}GAME OVER!{term.RESET}")
 
     if game.state.winner is not None:
-        winner_name = f"Player {game.state.winner + 1}"
-        print(f"{term.BOLD}{term.FG_YELLOW}🏆 {winner_name} WINS! 🏆{term.RESET}")
+        winner_idx = game.state.winner
+        player = game.players[winner_idx] if winner_idx < len(game.players) else None
+        name = player.name if player and player.name else None
+        winner_label = f"P{winner_idx + 1} ({name})" if name else f"Player {winner_idx + 1}"
+        print(f"{term.BOLD}{term.FG_YELLOW}🏆 {winner_label} WINS! 🏆{term.RESET}")
 
     print(f"\n{term.BOLD}Final Scores:{term.RESET}")
     for i in range(game.num_players):
+        player = game.players[i] if i < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{i + 1} ({name})" if name else f"Player {i + 1}"
         tokens = game.state.scores.get(i, 0)
         bar = "❤️ " * tokens
-        print(f"  Player {i + 1}: {bar}({tokens})")
+        print(f"  {player_label}: {bar}({tokens})")
 
     print(f"{term.BOLD}{term.FG_MAGENTA}{'=' * 60}{term.RESET}\n")
 

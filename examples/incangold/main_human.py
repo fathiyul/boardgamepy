@@ -36,23 +36,25 @@ def setup_game(game: IncanGoldGame, logging_config: LoggingConfig) -> tuple[str,
     print(f"\nWelcome, {player_name}!")
     print(f"You will explore the temple with {game.num_players - 1} AI opponent(s).\n")
 
-    # Create LLM for AI players
-    if os.getenv("OPENROUTER_API_KEY"):
-        base_llm = ChatOpenAI(
-            model=logging_config.openrouter_model,
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            base_url="https://openrouter.ai/api/v1",
-        )
-        model_name = logging_config.openrouter_model
-    else:
-        base_llm = ChatOpenAI(
-            model=logging_config.openai_model,
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
-        model_name = logging_config.openai_model
+    # Check for API key
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_key:
+        raise ValueError("OPENROUTER_API_KEY is required")
 
     # Human is always Player 1
     human_idx = 0
+
+    # Track model usage for naming with duplicates
+    model_counts: dict[str, int] = {}
+    model_instances: dict[str, int] = {}
+
+    # First pass: count model occurrences for AI players
+    for i in range(len(game.players)):
+        if i == human_idx:
+            continue
+        model = logging_config.get_model_for_player(i)
+        short_name = logging_config.get_short_model_name(model)
+        model_counts[short_name] = model_counts.get(short_name, 0) + 1
 
     # Configure players
     for i, player in enumerate(game.players):
@@ -61,14 +63,27 @@ def setup_game(game: IncanGoldGame, logging_config: LoggingConfig) -> tuple[str,
             player.agent_type = "human"
             player.name = player_name
         else:
+            model = logging_config.get_model_for_player(i)
+            base_llm = ChatOpenAI(
+                model=model,
+                api_key=openrouter_key,
+                base_url="https://openrouter.ai/api/v1",
+            )
             base_agent = LLMAgent(
                 llm=base_llm,
                 prompt_builder=IncanGoldPromptBuilder(),
                 output_schema=MakeDecisionAction.OutputSchema,
             )
-            player.agent = LoggedLLMAgent(base_agent, model_name)
+            player.agent = LoggedLLMAgent(base_agent, model)
             player.agent_type = "ai"
-            player.name = f"AI {i}"
+
+            # Set player name to model name
+            short_name = logging_config.get_short_model_name(model)
+            if model_counts[short_name] > 1:
+                model_instances[short_name] = model_instances.get(short_name, 0) + 1
+                player.name = f"{short_name} ({model_instances[short_name]})"
+            else:
+                player.name = short_name
 
     print("=" * 70)
     input("Press Enter to start the game...")

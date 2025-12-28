@@ -124,20 +124,10 @@ def setup_round_agents(
     player_name: str,
 ):
     """Setup agents for the current round based on roles."""
-    # Create LLM for AI players
-    if os.getenv("OPENROUTER_API_KEY"):
-        base_llm = ChatOpenAI(
-            model=logging_config.openrouter_model,
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            base_url="https://openrouter.ai/api/v1",
-        )
-        model_name = logging_config.openrouter_model
-    else:
-        base_llm = ChatOpenAI(
-            model=logging_config.openai_model,
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
-        model_name = logging_config.openai_model
+    # Check for API key
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_key:
+        raise ValueError("OPENROUTER_API_KEY is required")
 
     psychic_builder = PsychicPromptBuilder()
     guesser_builder = GuesserPromptBuilder()
@@ -146,55 +136,86 @@ def setup_round_agents(
     # Determine human's role this round
     human_role = get_human_role_this_round(game, human_team_idx, first_role)
 
-    for player in game.players:
+    # Track if human has been assigned (only ONE human per role)
+    human_assigned = False
+
+    for i, player in enumerate(game.players):
         player_team_idx = 0 if player.team == "Team 1" else 1
 
+        # Get per-player model
+        model = logging_config.get_model_for_player(i)
+        short_name = logging_config.get_short_model_name(model)
+
+        # Check if this player should be human-controlled
+        # Only assign human to FIRST matching player in the team
+        is_human_player = (
+            not human_assigned
+            and player_team_idx == human_team_idx
+            and player.role.lower() == human_role
+        )
+
+        if is_human_player:
+            human_assigned = True
+
         if player.role == "Psychic":
-            if player_team_idx == human_team_idx and human_role == "psychic":
+            if is_human_player:
                 player.agent = WavelengthPsychicHumanAgent()
                 player.agent_type = "human"
                 player.name = player_name
             else:
+                llm = ChatOpenAI(
+                    model=model,
+                    api_key=openrouter_key,
+                    base_url="https://openrouter.ai/api/v1",
+                )
                 base_agent = LLMAgent(
-                    llm=base_llm,
+                    llm=llm,
                     prompt_builder=psychic_builder,
                     output_schema=GiveClueAction.OutputSchema,
                 )
-                player.agent = LoggedLLMAgent(base_agent, model_name)
+                player.agent = LoggedLLMAgent(base_agent, model)
                 player.agent_type = "ai"
-                player.name = "AI Psychic"
+                player.name = short_name
 
         elif player.role == "Guesser":
-            if player_team_idx == human_team_idx and human_role == "guesser":
+            if is_human_player:
                 player.agent = WavelengthGuesserHumanAgent()
                 player.agent_type = "human"
                 player.name = player_name
             else:
+                llm = ChatOpenAI(
+                    model=model,
+                    api_key=openrouter_key,
+                    base_url="https://openrouter.ai/api/v1",
+                )
                 base_agent = LLMAgent(
-                    llm=base_llm,
+                    llm=llm,
                     prompt_builder=guesser_builder,
                     output_schema=GuessPositionAction.OutputSchema,
                 )
-                player.agent = LoggedLLMAgent(base_agent, model_name)
+                player.agent = LoggedLLMAgent(base_agent, model)
                 player.agent_type = "ai"
-                player.name = "AI Guesser"
+                player.name = short_name
 
         elif player.role == "Opponent":
-            # Opponent role: predict left/right for the OTHER team's guess
-            # Human plays opponent when their team is NOT active
-            if player_team_idx == human_team_idx and human_role == "opponent":
+            if is_human_player:
                 player.agent = WavelengthOpponentHumanAgent()
                 player.agent_type = "human"
                 player.name = player_name
             else:
+                llm = ChatOpenAI(
+                    model=model,
+                    api_key=openrouter_key,
+                    base_url="https://openrouter.ai/api/v1",
+                )
                 base_agent = LLMAgent(
-                    llm=base_llm,
+                    llm=llm,
                     prompt_builder=opponent_builder,
                     output_schema=PredictDirectionAction.OutputSchema,
                 )
-                player.agent = LoggedLLMAgent(base_agent, model_name)
+                player.agent = LoggedLLMAgent(base_agent, model)
                 player.agent_type = "ai"
-                player.name = "AI Opponent"
+                player.name = short_name
 
 
 def render_human_view(
@@ -205,17 +226,26 @@ def render_human_view(
     ui.render_header(game)
     ui.render_scores(game)
 
-    # Show spectrum
+    # Show spectrum using shared function
     if game.board.current_spectrum:
-        spectrum = game.board.current_spectrum
-        print(f"{term.BOLD}Spectrum:{term.RESET}")
-        print(
-            f"  {term.FG_CYAN}[{spectrum.left}]{term.RESET} <-----> {term.FG_MAGENTA}[{spectrum.right}]{term.RESET}"
-        )
-        print(f"  {term.DIM}0{'':^40}50{'':^40}100{term.RESET}")
-
         # Determine human's role this round
         human_role = get_human_role_this_round(game, human_team_idx, first_role)
+
+        # Use ui.render_spectrum but add human-specific target visibility
+        spectrum = game.board.current_spectrum
+
+        print(f"{term.BOLD}Current Spectrum:{term.RESET}")
+
+        # Calculate arrow length to match scale line below
+        scale_width = 86
+        fixed_chars = 8  # Brackets, spaces, and arrow ends
+        text_length = len(spectrum.left) + len(spectrum.right)
+        arrow_dashes_needed = scale_width - fixed_chars - text_length
+        arrow_dashes = max(arrow_dashes_needed, 10)
+        arrow = "─" * arrow_dashes
+
+        print(f"  {term.FG_CYAN}[{spectrum.left}]{term.RESET} ←{arrow}→ {term.FG_MAGENTA}[{spectrum.right}]{term.RESET}")
+        print(f"  {term.DIM}0{'':^40}50{'':^40}100{term.RESET}")
 
         # Show target ONLY if human is psychic in psychic phase
         if human_role == "psychic" and game.state.phase == "psychic_clue":

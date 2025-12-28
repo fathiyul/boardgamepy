@@ -42,7 +42,7 @@ class ReserveCardOutput(BaseModel):
     reasoning: str | None = Field(None, description="Why you're reserving this card")
 
 
-# Union output schema
+# Simplified output schema - avoid nullable types to reduce schema branches
 class GameActionOutput(BaseModel):
     """Combined output schema for all actions."""
 
@@ -50,18 +50,18 @@ class GameActionOutput(BaseModel):
         ..., description="Type of action to take"
     )
 
-    # Take gems fields
-    gem1: str | None = Field(None, description="First gem type")
-    gem2: str | None = Field(None, description="Second gem type")
-    gem3: str | None = Field(None, description="Third gem type")
-    take_two: bool = Field(False, description="Take 2 of same gem")
+    # Take gems fields - use empty string instead of None
+    gem1: str = Field("", description="First gem type (Diamond/Sapphire/Emerald/Ruby/Onyx)")
+    gem2: str = Field("", description="Second gem type (different from gem1, or empty)")
+    gem3: str = Field("", description="Third gem type (different from gem1 and gem2, or empty)")
+    take_two: bool = Field(False, description="True to take 2 of gem1, False to take 3 different")
 
-    # Purchase/Reserve fields
-    card_id: int | None = Field(None, description="Card ID")
-    from_reserved: bool = Field(False, description="Purchase from reserved")
-    tier: int | None = Field(None, description="Card tier")
+    # Purchase/Reserve fields - use 0 instead of None
+    card_id: int = Field(0, description="Card ID for purchase/reserve actions")
+    from_reserved: bool = Field(False, description="True if purchasing from reserved cards")
+    tier: int = Field(0, description="Card tier for reserve action (1, 2, or 3)")
 
-    reasoning: str | None = Field(None, description="Reasoning for action")
+    reasoning: str = Field("", description="Reasoning for action")
 
 
 class TakeGemsAction(Action["SplendorGame"]):
@@ -88,8 +88,8 @@ class TakeGemsAction(Action["SplendorGame"]):
         game: "SplendorGame",
         player: "Player",
         gem1: str,
-        gem2: str | None = None,
-        gem3: str | None = None,
+        gem2: str = "",
+        gem3: str = "",
         take_two: bool = False,
         **kwargs,
     ) -> bool:
@@ -148,8 +148,8 @@ class TakeGemsAction(Action["SplendorGame"]):
         game: "SplendorGame",
         player: "Player",
         gem1: str,
-        gem2: str | None = None,
-        gem3: str | None = None,
+        gem2: str = "",
+        gem3: str = "",
         take_two: bool = False,
         **kwargs,
     ) -> None:

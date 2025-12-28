@@ -18,10 +18,11 @@ class CodenamesRunner(GameRunner):
     """Runner for Codenames with role-based agents and custom turn logic."""
 
     def setup_ai_agents(self, game):
-        """Configure AI agents based on player roles."""
-        llm, model_name = self.create_llm()
+        """Configure AI agents based on player roles with per-player models."""
+        for i, player in enumerate(game.players):
+            llm, model_name = self.create_llm_for_player(i)
+            short_name = self.logging_config.get_short_model_name(model_name)
 
-        for player in game.players:
             if player.role == "Spymaster":
                 base_agent = LLMAgent(
                     llm=llm,
@@ -35,6 +36,7 @@ class CodenamesRunner(GameRunner):
                     output_schema=GuessAction.OutputSchema,
                 )
             player.agent = LoggedLLMAgent(base_agent, model_name)
+            player.name = short_name
 
     def run_turn(self, game, player, game_logger):
         """Custom turn handling for role-based actions."""

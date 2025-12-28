@@ -62,7 +62,9 @@ def render_player_status(game: "IncanGoldGame") -> None:
     explorer_count = len(in_temple)
 
     for i in range(game.num_players):
-        player_name = f"Player {i + 1}"
+        player = game.players[i] if i < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{i + 1} ({name})" if name else f"Player {i + 1}"
         color = term.get_player_color(i)
 
         score = game.board.get_total_score(i)
@@ -88,7 +90,7 @@ def render_player_status(game: "IncanGoldGame") -> None:
         else:
             status = f"{term.FG_BLUE}🏕️ SAFE{term.RESET}"
 
-        info = f"{color}{player_name:10}{term.RESET} {status} Score: {score} ({gems} gems, {artifacts} artifacts)"
+        info = f"{color}{player_label:25}{term.RESET} {status} Score: {score} ({gems} gems, {artifacts} artifacts)"
         print(f"  {info}")
 
     print()
@@ -98,10 +100,12 @@ def render_player_status(game: "IncanGoldGame") -> None:
 
 def render_decision_prompt(game: "IncanGoldGame", player_idx: int) -> None:
     """Render decision prompt for current player."""
-    player_name = f"Player {player_idx + 1}"
+    player = game.players[player_idx] if player_idx < len(game.players) else None
+    name = player.name if player and player.name else None
+    player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
     color = term.get_player_color(player_idx)
 
-    print(f"{term.BOLD}{color}>>> {player_name}'s Decision{term.RESET}")
+    print(f"{term.BOLD}{color}>>> {player_label}'s Decision{term.RESET}")
     print()
 
     temp_gems = game.board.player_temp_gems[player_idx]
@@ -165,9 +169,11 @@ def render_distribution(game: "IncanGoldGame", returners: set[int]) -> None:
 
         print(f"{term.BOLD}Returners collect gems from path:{term.RESET}")
         for player_idx in returners:
-            player_name = f"Player {player_idx + 1}"
+            player = game.players[player_idx] if player_idx < len(game.players) else None
+            name = player.name if player and player.name else None
+            player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
             color = term.get_player_color(player_idx)
-            print(f"  {color}{player_name}{term.RESET} receives {term.FG_YELLOW}{each} gems{term.RESET}")
+            print(f"  {color}{player_label}{term.RESET} receives {term.FG_YELLOW}{each} gems{term.RESET}")
         print()
 
 
@@ -186,7 +192,9 @@ def render_round_end(game: "IncanGoldGame") -> None:
     )
 
     for rank, player_idx in enumerate(sorted_players, 1):
-        player_name = f"Player {player_idx + 1}"
+        player = game.players[player_idx] if player_idx < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
         color = term.get_player_color(player_idx)
         score = game.board.get_total_score(player_idx)
         gems = game.board.player_gems[player_idx]
@@ -198,9 +206,9 @@ def render_round_end(game: "IncanGoldGame") -> None:
             artifact_str = f" ({len(artifacts)} artifacts: {artifact_pts} pts)"
 
         if rank == 1:
-            print(f"  {term.FG_YELLOW}🏆 {rank}. {color}{player_name:10}{term.RESET} {score} points ({gems} gems{artifact_str})")
+            print(f"  {term.FG_YELLOW}🏆 {rank}. {color}{player_label:25}{term.RESET} {score} points ({gems} gems{artifact_str})")
         else:
-            print(f"     {rank}. {color}{player_name:10}{term.RESET} {score} points ({gems} gems{artifact_str})")
+            print(f"     {rank}. {color}{player_label:25}{term.RESET} {score} points ({gems} gems{artifact_str})")
 
     print(f"{term.BOLD}{term.FG_GREEN}{'=' * 70}{term.RESET}\n")
 
@@ -223,18 +231,23 @@ def render_game_end(game: "IncanGoldGame") -> None:
     )
 
     for rank, player_idx in enumerate(sorted_players, 1):
-        player_name = f"Player {player_idx + 1}"
+        player = game.players[player_idx] if player_idx < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
         color = term.get_player_color(player_idx)
         score = game.board.get_total_score(player_idx)
 
         if rank == 1:
-            print(f"  {term.FG_YELLOW}🏆 {rank}. {color}{player_name:10}{term.RESET} {score} points{term.RESET}")
+            print(f"  {term.FG_YELLOW}🏆 {rank}. {color}{player_label:25}{term.RESET} {score} points{term.RESET}")
         else:
-            print(f"     {rank}. {color}{player_name:10}{term.RESET} {score} points")
+            print(f"     {rank}. {color}{player_label:25}{term.RESET} {score} points")
 
     if game.state.winner is not None:
-        winner_name = f"Player {game.state.winner + 1}"
-        print(f"\n{term.BOLD}{term.FG_YELLOW}Winner: {winner_name}!{term.RESET}")
+        winner_idx = game.state.winner
+        winner_player = game.players[winner_idx] if winner_idx < len(game.players) else None
+        winner_name = winner_player.name if winner_player and winner_player.name else None
+        winner_label = f"P{winner_idx + 1} ({winner_name})" if winner_name else f"Player {winner_idx + 1}"
+        print(f"\n{term.BOLD}{term.FG_YELLOW}Winner: {winner_label}!{term.RESET}")
 
     print(f"{term.BOLD}{term.FG_YELLOW}{'=' * 70}{term.RESET}\n")
 

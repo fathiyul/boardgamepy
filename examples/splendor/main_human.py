@@ -60,20 +60,22 @@ def setup_players(game: SplendorGame, logging_config: LoggingConfig) -> tuple[in
     print(f"\nYou will play as Player {human_player_idx + 1} ({player_name})")
     print("All other players will be AI\n")
 
-    # Create LLM for AI players
-    if os.getenv("OPENROUTER_API_KEY"):
-        base_llm = ChatOpenAI(
-            model=logging_config.openrouter_model,
-            api_key=os.getenv("OPENROUTER_API_KEY"),
-            base_url="https://openrouter.ai/api/v1",
-        )
-        model_name = logging_config.openrouter_model
-    else:
-        base_llm = ChatOpenAI(
-            model=logging_config.openai_model,
-            api_key=os.getenv("OPENAI_API_KEY"),
-        )
-        model_name = logging_config.openai_model
+    # Check for API key
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if not openrouter_key:
+        raise ValueError("OPENROUTER_API_KEY is required")
+
+    # Track model usage for naming with duplicates
+    model_counts: dict[str, int] = {}
+    model_instances: dict[str, int] = {}
+
+    # First pass: count model occurrences for AI players
+    for i in range(len(game.players)):
+        if i == human_player_idx:
+            continue
+        model = logging_config.get_model_for_player(i)
+        short_name = logging_config.get_short_model_name(model)
+        model_counts[short_name] = model_counts.get(short_name, 0) + 1
 
     # Configure players
     for i, player in enumerate(game.players):
@@ -82,14 +84,27 @@ def setup_players(game: SplendorGame, logging_config: LoggingConfig) -> tuple[in
             player.agent_type = "human"
             player.name = player_name
         else:
+            model = logging_config.get_model_for_player(i)
+            base_llm = ChatOpenAI(
+                model=model,
+                api_key=openrouter_key,
+                base_url="https://openrouter.ai/api/v1",
+            )
             base_agent = LLMAgent(
                 llm=base_llm,
                 prompt_builder=SplendorPromptBuilder(),
                 output_schema=GameActionOutput,
             )
-            player.agent = LoggedLLMAgent(base_agent, model_name)
+            player.agent = LoggedLLMAgent(base_agent, model)
             player.agent_type = "ai"
-            player.name = f"AI {i + 1}"
+
+            # Set player name to model name
+            short_name = logging_config.get_short_model_name(model)
+            if model_counts[short_name] > 1:
+                model_instances[short_name] = model_instances.get(short_name, 0) + 1
+                player.name = f"{short_name} ({model_instances[short_name]})"
+            else:
+                player.name = short_name
 
     print("=" * 70)
     input("Press Enter to start the game...")

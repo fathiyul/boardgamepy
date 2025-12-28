@@ -19,14 +19,15 @@ class WavelengthRunner(GameRunner):
     """Runner for Wavelength with phase-based gameplay and role-specific agents."""
 
     def setup_ai_agents(self, game):
-        """Configure AI agents based on player roles."""
-        llm, model_name = self.create_llm()
-
+        """Configure AI agents based on player roles with per-player models."""
         psychic_builder = PsychicPromptBuilder()
         guesser_builder = GuesserPromptBuilder()
         opponent_builder = OpponentPromptBuilder()
 
-        for player in game.players:
+        for i, player in enumerate(game.players):
+            llm, model_name = self.create_llm_for_player(i)
+            short_name = self.logging_config.get_short_model_name(model_name)
+
             if player.role == "Psychic":
                 base_agent = LLMAgent(llm=llm, prompt_builder=psychic_builder,
                                       output_schema=GiveClueAction.OutputSchema)
@@ -39,6 +40,7 @@ class WavelengthRunner(GameRunner):
             else:
                 continue
             player.agent = LoggedLLMAgent(base_agent, model_name)
+            player.name = short_name
 
     def run_phase(self, game, player, phase, game_logger):
         """Handle a single phase of the game."""

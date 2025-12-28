@@ -26,8 +26,6 @@ class GuessPositionOutput(BaseModel):
     position: int = Field(
         ...,
         description="Your guess for the target position (0-100, where 0=left extreme, 100=right extreme)",
-        ge=0,
-        le=100,
     )
     reasoning: str | None = Field(None, description="How you interpreted the clue")
 

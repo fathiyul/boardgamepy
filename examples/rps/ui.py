@@ -34,8 +34,14 @@ def render_status(game: "StrategyRPSGame") -> None:
     # Round info
     round_info = f"{term.BOLD}Round {state.current_round + 1}/15{term.RESET}"
 
+    # Get player names
+    player1 = game.players[0] if len(game.players) > 0 else None
+    player2 = game.players[1] if len(game.players) > 1 else None
+    p1_label = f"P1 ({player1.name})" if player1 and player1.name else "Player 1"
+    p2_label = f"P2 ({player2.name})" if player2 and player2.name else "Player 2"
+
     # Player 1 stats
-    p1_name = f"{p1_color}{term.BOLD}Player 1{term.RESET}"
+    p1_name = f"{p1_color}{term.BOLD}{p1_label}{term.RESET}"
     p1_stats = f"Score: {term.BOLD}{state.player1_score}{term.RESET}/10  Health: "
     if state.player1_health <= 1:
         p1_stats += f"{term.FG_BRIGHT_RED}{term.BOLD}{state.player1_health}♥{term.RESET}"
@@ -43,7 +49,7 @@ def render_status(game: "StrategyRPSGame") -> None:
         p1_stats += f"{term.BOLD}{state.player1_health}♥{term.RESET}"
 
     # Player 2 stats
-    p2_name = f"{p2_color}{term.BOLD}Player 2{term.RESET}"
+    p2_name = f"{p2_color}{term.BOLD}{p2_label}{term.RESET}"
     p2_stats = f"Score: {term.BOLD}{state.player2_score}{term.RESET}/10  Health: "
     if state.player2_health <= 1:
         p2_stats += f"{term.FG_BRIGHT_RED}{term.BOLD}{state.player2_health}♥{term.RESET}"

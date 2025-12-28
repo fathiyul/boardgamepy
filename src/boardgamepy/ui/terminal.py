@@ -113,16 +113,40 @@ def format_player_name(player_idx: int, name: str | None = None) -> str:
     """
     Format a player name with their color.
 
+    Shows "P{n} ({name})" format if name is provided, otherwise "Player {n}".
+
     Args:
         player_idx: Zero-based player index
-        name: Optional custom name (defaults to "Player N")
+        name: Optional custom name (model name, player's name, etc.)
 
     Returns:
-        Colorized player name
+        Colorized player name like "P1 (gemini-2.5-flash)"
     """
     color = get_player_color(player_idx)
-    display_name = name or f"Player {player_idx + 1}"
+    if name:
+        display_name = f"P{player_idx + 1} ({name})"
+    else:
+        display_name = f"Player {player_idx + 1}"
     return f"{BOLD}{color}{display_name}{RESET}"
+
+
+def format_player_short(player_idx: int, name: str | None = None) -> str:
+    """
+    Format a player name in short form for compact displays.
+
+    Shows just "P{n}" with optional name in parentheses.
+
+    Args:
+        player_idx: Zero-based player index
+        name: Optional custom name
+
+    Returns:
+        Short colorized player name like "P1" or "P1 (name)"
+    """
+    color = get_player_color(player_idx)
+    if name:
+        return f"{BOLD}{color}P{player_idx + 1} ({name}){RESET}"
+    return f"{BOLD}{color}P{player_idx + 1}{RESET}"
 
 
 def render_section(title: str, color: str = FG_WHITE, width: int = 50) -> None:

@@ -32,8 +32,11 @@ def render_header(game: "SplendorGame") -> None:
 def render_turn_info(game: "SplendorGame") -> None:
     """Render turn information."""
     current = game.state.current_player_idx
+    player = game.players[current] if current < len(game.players) else None
+    name = player.name if player and player.name else None
+    player_label = f"P{current + 1} ({name})" if name else f"Player {current + 1}"
     print(f"{term.BOLD}Turn {game.state.round_number}{term.RESET}")
-    print(f"{term.BOLD}{term.FG_CYAN}>>> Player {current + 1}'s Turn{term.RESET}")
+    print(f"{term.BOLD}{term.FG_CYAN}>>> {player_label}'s Turn{term.RESET}")
 
     if game.state.final_round_triggered:
         print(f"{term.FG_RED}⚠️ FINAL ROUND!{term.RESET}")
@@ -114,7 +117,9 @@ def render_player_status(game: "SplendorGame") -> None:
     print(f"{term.BOLD}Players:{term.RESET}")
 
     for i in range(game.num_players):
-        player_name = f"Player {i + 1}"
+        player = game.players[i] if i < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{i + 1} ({name})" if name else f"Player {i + 1}"
         color = term.get_player_color(i)
 
         # Calculate score
@@ -137,7 +142,7 @@ def render_player_status(game: "SplendorGame") -> None:
         num_cards = len(game.board.player_cards[i])
         num_reserved = len(game.board.player_reserved[i])
 
-        info = f"{color}{player_name:10}{term.RESET} "
+        info = f"{color}{player_label:25}{term.RESET} "
         info += f"Score: {term.FG_YELLOW}{total}{term.RESET} "
         info += f"({card_points}+{noble_points}) "
         info += f"| Gems: {gem_count}/10 "
@@ -156,10 +161,12 @@ def render_player_status(game: "SplendorGame") -> None:
 
 def render_player_details(game: "SplendorGame", player_idx: int) -> None:
     """Render detailed view for current player."""
-    player_name = f"Player {player_idx + 1}"
+    player = game.players[player_idx] if player_idx < len(game.players) else None
+    name = player.name if player and player.name else None
+    player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
     color = term.get_player_color(player_idx)
 
-    print(f"{term.BOLD}{color}>>> {player_name}'s Turn{term.RESET}")
+    print(f"{term.BOLD}{color}>>> {player_label}'s Turn{term.RESET}")
     print()
 
     # Your gems
@@ -255,23 +262,28 @@ def render_game_end(game: "SplendorGame") -> None:
     scores.sort(key=lambda x: (-x[1], x[2]))
 
     for rank, (player_idx, total, card_count, card_pts, noble_pts) in enumerate(scores, 1):
-        player_name = f"Player {player_idx + 1}"
+        player = game.players[player_idx] if player_idx < len(game.players) else None
+        name = player.name if player and player.name else None
+        player_label = f"P{player_idx + 1} ({name})" if name else f"Player {player_idx + 1}"
         color = term.get_player_color(player_idx)
 
         if rank == 1:
             print(
-                f"  {term.FG_YELLOW}🏆 {rank}. {color}{player_name:10}{term.RESET} "
+                f"  {term.FG_YELLOW}🏆 {rank}. {color}{player_label:25}{term.RESET} "
                 f"{total} points ({card_pts}+{noble_pts}), {card_count} cards"
             )
         else:
             print(
-                f"     {rank}. {color}{player_name:10}{term.RESET} "
+                f"     {rank}. {color}{player_label:25}{term.RESET} "
                 f"{total} points ({card_pts}+{noble_pts}), {card_count} cards"
             )
 
     if game.state.winner is not None:
-        winner_name = f"Player {game.state.winner + 1}"
-        print(f"\n{term.BOLD}{term.FG_YELLOW}Winner: {winner_name}!{term.RESET}")
+        winner_idx = game.state.winner
+        winner_player = game.players[winner_idx] if winner_idx < len(game.players) else None
+        winner_name = winner_player.name if winner_player and winner_player.name else None
+        winner_label = f"P{winner_idx + 1} ({winner_name})" if winner_name else f"Player {winner_idx + 1}"
+        print(f"\n{term.BOLD}{term.FG_YELLOW}Winner: {winner_label}!{term.RESET}")
 
     print(f"{term.BOLD}{term.FG_YELLOW}{'=' * 70}{term.RESET}\n")
 
