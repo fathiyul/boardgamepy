@@ -7,19 +7,20 @@ from enum import Enum
 class CardType(Enum):
     """Card types in Love Letter."""
 
-    GUARD = ("Guard", 1, 5)  # (name, card_value, count)
-    PRIEST = ("Priest", 2, 2)
-    BARON = ("Baron", 3, 2)
-    HANDMAID = ("Handmaid", 4, 2)
-    PRINCE = ("Prince", 5, 2)
-    KING = ("King", 6, 1)
-    COUNTESS = ("Countess", 7, 1)
-    PRINCESS = ("Princess", 8, 1)
+    GUARD = ("Guard", 1, 5, "💂")  # (name, card_value, count, emoji)
+    PRIEST = ("Priest", 2, 2, "🙏")
+    BARON = ("Baron", 3, 2, "⚔️")
+    HANDMAID = ("Handmaid", 4, 2, "🛡️")
+    PRINCE = ("Prince", 5, 2, "🤴")
+    KING = ("King", 6, 1, "👑")
+    COUNTESS = ("Countess", 7, 1, "👸")
+    PRINCESS = ("Princess", 8, 1, "👰")
 
-    def __init__(self, card_name: str, card_value: int, count: int):
+    def __init__(self, card_name: str, card_value: int, count: int, emoji: str):
         self.card_name = card_name
         self.card_value = card_value
         self.count = count
+        self.emoji = emoji
 
 
 @dataclass
@@ -37,8 +38,12 @@ class Card:
     def value(self) -> int:
         return self.type.card_value
 
+    @property
+    def emoji(self) -> str:
+        return self.type.emoji
+
     def __str__(self) -> str:
-        return f"{self.name} ({self.value})"
+        return f"{self.emoji} {self.name} ({self.value})"
 
     def __repr__(self) -> str:
         return f"Card({self.name}, {self.value})"

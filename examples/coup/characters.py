@@ -7,15 +7,16 @@ from enum import Enum
 class CharacterType(Enum):
     """Character types in Coup."""
 
-    DUKE = ("Duke", 3)  # (name, count)
-    ASSASSIN = ("Assassin", 3)
-    CAPTAIN = ("Captain", 3)
-    AMBASSADOR = ("Ambassador", 3)
-    CONTESSA = ("Contessa", 3)
+    DUKE = ("Duke", 3, "👑")  # (name, count, emoji)
+    ASSASSIN = ("Assassin", 3, "🗡️")
+    CAPTAIN = ("Captain", 3, "🏴‍☠️")
+    AMBASSADOR = ("Ambassador", 3, "📜")
+    CONTESSA = ("Contessa", 3, "👸")
 
-    def __init__(self, char_name: str, count: int):
+    def __init__(self, char_name: str, count: int, emoji: str):
         self.char_name = char_name
         self.count = count
+        self.emoji = emoji
 
 
 @dataclass
@@ -30,8 +31,12 @@ class Character:
     def name(self) -> str:
         return self.type.char_name
 
+    @property
+    def emoji(self) -> str:
+        return self.type.emoji
+
     def __str__(self) -> str:
-        return self.name
+        return f"{self.emoji} {self.name}"
 
     def __repr__(self) -> str:
         return f"Character({self.name}, revealed={self.revealed})"
