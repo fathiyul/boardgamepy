@@ -3,12 +3,12 @@
 ## 🎮 Run a Game
 
 ```bash
-# TicTacToe (simple, fast)
-cd examples/tictactoe
+# RPS (simple, fast)
+cd examples/rps
 python3 main.py
 
-# Subtract-a-Square (mathematical strategy)
-cd examples/subtract-a-square
+# Wythoff (mathematical strategy)
+cd examples/wythoff
 python3 main.py
 
 # Codenames (complex, team-based)
@@ -25,8 +25,8 @@ cd /home/fathiyul/01-project/boardgame
 # List all recent games
 python view_logs.py list
 
-# List last 5 TicTacToe games
-python view_logs.py list TicTacToe 5
+# List last 5 Coup games
+python view_logs.py list Coup 5
 
 # Show detailed game info (copy game_id from list command)
 python view_logs.py details abc-123-uuid-here
@@ -36,7 +36,7 @@ python view_logs.py stats
 python view_logs.py stats Codenames
 
 # Export for fine-tuning (creates training_data.json)
-python view_logs.py export TicTacToe 1000
+python view_logs.py export Coup 1000
 ```
 
 ## ⚙️ Configuration
@@ -106,7 +106,7 @@ for game in db.games.find().sort('timestamp_start', -1).limit(5):
 
 ### Change AI Model for a Specific Game
 
-Create `examples/tictactoe/.env`:
+Create `examples/coup/.env`:
 ```env
 OPENAI_MODEL=gpt-4o  # Override root config
 ```
@@ -121,8 +121,8 @@ ENABLE_LOGGING=false
 ### Export Training Data
 
 ```bash
-# Export all TicTacToe games
-python view_logs.py export TicTacToe
+# Export all Coup games
+python view_logs.py export Coup
 
 # Export with limit
 python view_logs.py export Codenames 500

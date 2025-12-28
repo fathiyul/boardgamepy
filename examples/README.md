@@ -1,6 +1,6 @@
 # BoardGamePy Examples
 
-This directory contains 12 complete game implementations demonstrating various features of the BoardGamePy framework. All examples include full MongoDB and LangSmith logging support.
+This directory contains 9 complete game implementations demonstrating various features of the BoardGamePy framework. All examples include full MongoDB and LangSmith logging support.
 
 ## Quick Start
 
@@ -22,27 +22,7 @@ See `.env.example` for all available configuration options.
 
 ## Available Games
 
-### 1. TicTacToe
-**Complexity:** Beginner
-**Players:** 2
-**Path:** `examples/tictactoe/`
-
-Classic 3x3 grid game. Perfect starting point for understanding the framework.
-
-**Features:**
-- Simple action validation
-- Clear win conditions
-- Minimal state management
-
-**Run:**
-```bash
-cd examples/tictactoe
-python main.py
-```
-
----
-
-### 2. Codenames
+### 1. Codenames
 **Complexity:** Advanced
 **Players:** 4 (2 teams)
 **Path:** `examples/codenames/`
@@ -63,7 +43,7 @@ python main.py
 
 ---
 
-### 3. Love Letter
+### 2. Love Letter
 **Complexity:** Intermediate
 **Players:** 2-4
 **Path:** `examples/loveletter/`
@@ -84,7 +64,7 @@ python main.py
 
 ---
 
-### 4. Sushi Go
+### 3. Sushi Go
 **Complexity:** Intermediate
 **Players:** 2-5
 **Path:** `examples/sushigo/`
@@ -105,7 +85,7 @@ python main.py
 
 ---
 
-### 5. Wavelength
+### 4. Wavelength
 **Complexity:** Intermediate
 **Players:** 4+ (2 teams)
 **Path:** `examples/wavelength/`
@@ -126,7 +106,7 @@ python main.py
 
 ---
 
-### 6. Splendor
+### 5. Splendor
 **Complexity:** Advanced
 **Players:** 2-4
 **Path:** `examples/splendor/`
@@ -147,7 +127,7 @@ python main.py
 
 ---
 
-### 7. Coup
+### 6. Coup
 **Complexity:** Intermediate
 **Players:** 2-6
 **Path:** `examples/coup/`
@@ -168,7 +148,7 @@ python main.py
 
 ---
 
-### 8. Incan Gold
+### 7. Incan Gold
 **Complexity:** Intermediate
 **Players:** 3-8
 **Path:** `examples/incangold/`
@@ -189,47 +169,7 @@ python main.py
 
 ---
 
-### 9. Subtract-a-Square
-**Complexity:** Beginner
-**Players:** 2
-**Path:** `examples/subtract-a-square/`
-
-Mathematical game where players subtract perfect squares from a counter.
-
-**Features:**
-- Simple mathematical validation
-- Perfect square calculation
-- Turn-based strategy
-
-**Run:**
-```bash
-cd examples/subtract-a-square
-python main.py
-```
-
----
-
-### 10. Nim
-**Complexity:** Beginner
-**Players:** 2
-**Path:** `examples/nim/`
-
-Classic pile subtraction game with configurable heaps.
-
-**Features:**
-- Multi-heap management
-- Configurable starting positions
-- Classic game theory example
-
-**Run:**
-```bash
-cd examples/nim
-python main.py
-```
-
----
-
-### 11. Wythoff
+### 8. Wythoff
 **Complexity:** Beginner
 **Players:** 2
 **Path:** `examples/wythoff/`
@@ -244,6 +184,26 @@ Two-pile Nim variant where players can take from one or both piles.
 **Run:**
 ```bash
 cd examples/wythoff
+python main.py
+```
+
+---
+
+### 9. RPS (Rock Paper Scissors)
+**Complexity:** Beginner
+**Players:** 2
+**Path:** `examples/rps/`
+
+Simplest possible game example - great starting point for understanding the framework.
+
+**Features:**
+- Minimal game state
+- Simple action validation
+- Basic win condition
+
+**Run:**
+```bash
+cd examples/rps
 python main.py
 ```
 
@@ -324,10 +284,8 @@ python view_logs.py export Codenames 1000
 ## Game Complexity Guide
 
 **Beginner** (Start here):
-- TicTacToe
-- Nim
+- RPS
 - Wythoff
-- Subtract-a-Square
 
 **Intermediate** (After understanding basics):
 - Love Letter

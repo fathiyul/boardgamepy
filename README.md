@@ -67,16 +67,13 @@ pip install -e ".[ai,examples]"
 ### Defining a Game
 
 ```python
+from typing import Any
 from boardgamepy import Game, GameState, Action, Board, Player
 
 class MyGameState(GameState):
     current_player: int = 0
-
-    def is_terminal(self) -> bool:
-        return False  # Implement win condition
-
-    def get_winner(self):
-        return None  # Return winner when terminal
+    is_over: bool = False  # Set to True when game ends
+    winner: Any = None     # Set winner when game ends
 
 
 class MyGame(Game):
@@ -125,18 +122,35 @@ class MoveAction(Action["MyGame"]):
 
 ### Running a Game
 
+For simple games, use `GameRunner` to eliminate boilerplate:
+
+```python
+from boardgamepy.core.runner import GameRunner
+
+# Create a runner and run the game
+if __name__ == "__main__":
+    GameRunner.main(
+        game_class=MyGame,
+        prompt_builder_class=MyPromptBuilder,
+        output_schema=MoveOutput,
+        game_dir=Path(__file__).parent,
+    )()
+```
+
+Or run manually:
+
 ```python
 game = MyGame()
 game.setup()
 
 # Game loop (simplified)
-while not game.state.is_terminal():
+while not game.state.is_over:
     player = game.get_current_player()
     action, params = player.agent.decide(game, player)
     if action.validate(game, player, **params):
         action.apply(game, player, **params)
 
-winner = game.state.get_winner()
+winner = game.state.winner
 ```
 
 ## Logging & Fine-Tuning
@@ -247,7 +261,7 @@ See [LOGGING_GUIDE.md](LOGGING_GUIDE.md) for complete documentation.
 
 ## Examples
 
-All 12 included game examples have full MongoDB and LangSmith logging support. See `examples/README.md` for detailed information.
+All 9 included game examples have full MongoDB and LangSmith logging support. See `examples/README.md` for detailed information.
 
 ### Codenames
 
@@ -265,7 +279,6 @@ python main.py
 
 ### All Available Examples
 
-- **TicTacToe** - Classic 3x3 grid game
 - **Codenames** - Team-based word association game
 - **Love Letter** - Card game with bluffing and deduction
 - **Sushi Go** - Card drafting game with simultaneous decisions
@@ -273,10 +286,8 @@ python main.py
 - **Splendor** - Engine-building card game
 - **Coup** - Bluffing and character-based game
 - **Incan Gold** - Push-your-luck temple exploration
-- **Subtract-a-Square** - Mathematical subtraction game
-- **Nim** - Classic pile subtraction game
 - **Wythoff** - Two-pile Nim variant
-- **More examples coming soon!**
+- **RPS** - Rock Paper Scissors (simplest example)
 
 ## Architecture
 
