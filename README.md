@@ -6,6 +6,14 @@
 
 A lean Python framework for building AI-playable board games with reusable abstractions.
 
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/f71e2d10-a1e4-4a57-800c-f45227cf0bb4" width="600" controls>
+    Your browser does not support the video tag.
+  </video>
+  <br>
+  <em>Demo: Codenames with AI agents built using BoardGamePy</em>
+</p>
+
 **📚 [Complete Documentation](docs/)** | **🚀 [Getting Started Tutorial](docs/getting-started.md)** | **⚡ [Quick Start](QUICKSTART.md)**
 
 ## Overview

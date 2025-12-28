@@ -9,7 +9,7 @@ class CharacterType(Enum):
 
     DUKE = ("Duke", 3, "👑")  # (name, count, emoji)
     ASSASSIN = ("Assassin", 3, "🗡️")
-    CAPTAIN = ("Captain", 3, "🏴‍☠️")
+    CAPTAIN = ("Captain", 3, "⚓")
     AMBASSADOR = ("Ambassador", 3, "📜")
     CONTESSA = ("Contessa", 3, "👸")
 
