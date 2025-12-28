@@ -15,11 +15,3 @@ class SubtractASquareState(GameState):
     current_player: Player = "Player 1"
     is_over: bool = False
     winner: Player | None = None
-
-    def is_terminal(self) -> bool:
-        """Check if game is over."""
-        return self.is_over
-
-    def get_winner(self) -> Player | None:
-        """Get the winner."""
-        return self.winner

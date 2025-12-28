@@ -1,114 +1,52 @@
 """Run Strategic Rock Paper Scissors with AI players."""
 
-import logging
-from pathlib import Path
+import copy
 import time
+from pathlib import Path
 
-from langchain_openai import ChatOpenAI
-from boardgamepy.ai import LLMAgent
-from boardgamepy.logging import LoggedLLMAgent, LoggingConfig, GameLogger
-
+from boardgamepy import GameRunner
 from strategy_game import StrategyRPSGame
 from prompts_strategy import StrategyRPSPromptBuilder
 from actions import StrategyChooseAction
-from config import config
 import ui
 
-# Setup logging
-log_file = Path(__file__).parent / "game_errors.log"
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_file),
-        logging.StreamHandler()
-    ]
-)
 
-# Suppress HTTP request logging
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("openai").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
+class RPSRunner(GameRunner):
+    """Runner for Strategic RPS with custom turn logic."""
 
-logger = logging.getLogger(__name__)
-
-
-def setup_ai_agents(game: StrategyRPSGame, logging_config: LoggingConfig) -> None:
-    """Configure AI agents for both players."""
-    # Create base LLM
-    base_llm = ChatOpenAI(
-        model=logging_config.openrouter_model,
-        api_key=config.OPENROUTER_API_KEY,
-        base_url="https://openrouter.ai/api/v1",
-    )
-    model_name = logging_config.openrouter_model
-
-    # Configure AI agents for both players
-    for player in game.players:
-        base_agent = LLMAgent(
-            llm=base_llm,
-            prompt_builder=StrategyRPSPromptBuilder(),
-            output_schema=StrategyChooseAction.OutputSchema,
-        )
-        player.agent = LoggedLLMAgent(base_agent, model_name)
-
-
-def main():
-    """Main game loop for AI vs AI Strategic Rock Paper Scissors."""
-    # Load configuration
-    logging_config = LoggingConfig.load(Path(__file__).parent)
-
-    # Create game logger
-    game_logger = GameLogger(logging_config)
-
-    # Create and initialize the game
-    game = StrategyRPSGame()
-    game.setup()
-
-    # Log game start
-    if game_logger.enabled:
-        game_logger.start_game(game, {"mode": "ai_vs_ai_strategic"})
-
-    # Configure AI agents
-    setup_ai_agents(game, logging_config)
-
-    turn_count = 0
-
-    # Main game loop
-    while not game.state.is_terminal():
-        turn_count += 1
-        player = game.get_current_player()
-
-        # If no current player, both have chosen, move to next round
-        if player is None:
-            continue
-
+    def run_turn(self, game, player, game_logger):
+        """Custom turn handling for RPS."""
         # Refresh UI
-        ui.refresh(game)
+        if self.ui:
+            self.ui.refresh(game)
 
         # Show player's turn
         player_num = 1 if player == game.players[0] else 2
         ui.render_turn_prompt(player.name, player_num)
 
-        # Get action from AI agent
-        action = game.actions[0]  # StrategyChooseAction
-        llm_output = player.agent.get_action(game, player)
+        # Get action from AI
+        action = StrategyChooseAction()
+        try:
+            llm_output = player.agent.get_action(game, player)
+        except Exception as e:
+            print(f"Error getting action: {e}")
+            time.sleep(2)
+            return False
 
         # Show AI choice and reasoning
         ui.render_ai_choice(llm_output.choice, llm_output.reasoning)
 
+        # Capture board before
+        board_before = copy.deepcopy(game.board)
+
         # Validate and apply
-        if action.validate(game, player, llm_output.choice):
-            # Capture board before applying action (to log round effects)
-            import copy
-            board_before = copy.deepcopy(game.board)
+        if action.validate(game, player, choice=llm_output.choice):
+            action.apply(game, player, choice=llm_output.choice)
 
-            action.apply(game, player, llm_output.choice)
-
-            # Capture board after action
+            # Capture board after
             board_after = copy.deepcopy(game.board)
 
-            # Log to MongoDB if enabled
+            # Log turn
             if game_logger.enabled:
                 llm_call_data = None
                 if hasattr(player.agent, '_last_llm_call'):
@@ -124,35 +62,44 @@ def main():
                     action=action,
                     action_params={"choice": llm_output.choice},
                     action_valid=True,
-                    llm_call_data=llm_call_data
+                    llm_call_data=llm_call_data,
                 )
+            return True
         else:
-            print(f"   ⚠ Invalid choice!")
-            logger.error(f"Invalid action from {player.name}: {llm_output.choice}")
+            print("   Invalid choice!")
+            return False
 
-        # Small delay for readability
-        time.sleep(1)
+    def run_loop(self, game, game_logger):
+        """Custom game loop with turn limit."""
+        turn_count = 0
+        max_turns = 100
 
-        # Safety limit
-        if turn_count > 100:
-            print("\n⚠ Turn limit reached!")
-            break
+        while not game.state.is_terminal() and turn_count < max_turns:
+            turn_count += 1
+            player = game.get_current_player()
 
-    # Log game end
-    if game_logger.enabled:
-        game_logger.end_game(game)
+            if player is None:
+                continue
 
-    # Final refresh and game over screen
-    ui.refresh(game)
-    ui.render_game_over(game)
+            success = self.run_turn(game, player, game_logger)
+            if success:
+                time.sleep(1)
+
+        if turn_count >= max_turns:
+            print("\nTurn limit reached!")
+
+    def on_game_end(self, game):
+        """Custom game over screen."""
+        if self.ui:
+            self.ui.refresh(game)
+        ui.render_game_over(game)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\n\nGame interrupted by user. Goodbye!")
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
-        import traceback
-        traceback.print_exc()
+    RPSRunner.main(
+        game_class=StrategyRPSGame,
+        prompt_builder_class=StrategyRPSPromptBuilder,
+        output_schema=StrategyChooseAction.OutputSchema,
+        ui_module=ui,
+        game_dir=Path(__file__).parent,
+    )()

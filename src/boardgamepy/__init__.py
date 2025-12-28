@@ -20,6 +20,7 @@ from boardgamepy.core import (
     GameHistory,
     Round,
     Game,
+    GameRunner,
 )
 
 # Components
@@ -44,6 +45,7 @@ __all__ = [
     "GameHistory",
     "Round",
     "Game",
+    "GameRunner",
     # Components
     "Board",
     "Piece",

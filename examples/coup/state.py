@@ -31,10 +31,6 @@ class CoupState(GameState):
     pending_claimed_character: str | None = None
     action_resolved: bool = True  # False when waiting for challenges/blocks
 
-    def is_terminal(self) -> bool:
-        """Check if game is over."""
-        return self.is_over
-
     def get_winner(self) -> str | None:
         """Get the winner as player name."""
         if self.winner is None:

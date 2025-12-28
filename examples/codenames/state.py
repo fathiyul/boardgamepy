@@ -23,11 +23,3 @@ class CodenamesState(GameState):
     is_over: bool = False
     winner: Team | None = None
     consecutive_invalid_actions: int = 0  # Track invalid actions to prevent infinite loops
-
-    def is_terminal(self) -> bool:
-        """Check if game is over."""
-        return self.is_over
-
-    def get_winner(self) -> Team | None:
-        """Get the winner."""
-        return self.winner

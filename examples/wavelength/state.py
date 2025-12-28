@@ -27,10 +27,6 @@ class WavelengthState(GameState):
         if self.team_scores is None:
             self.team_scores = {0: 0, 1: 0}
 
-    def is_terminal(self) -> bool:
-        """Check if game is over."""
-        return self.is_over
-
     def get_winner(self) -> str | None:
         """Get the winner as team name."""
         if self.winner is None:

@@ -1,283 +1,187 @@
 """Splendor game using boardgamepy framework."""
 
-import time
-import logging
-from pathlib import Path
 import copy
+import time
+from pathlib import Path
 
-from langchain_openai import ChatOpenAI
-from boardgamepy.ai import LLMAgent
-from boardgamepy.logging import LoggedLLMAgent, LoggingConfig, GameLogger
+from boardgamepy import GameRunner
 from game import SplendorGame
 from prompts import SplendorPromptBuilder
 from actions import TakeGemsAction, PurchaseCardAction, ReserveCardAction, GameActionOutput
 from config import config
 import ui
 
-# Suppress HTTP request logging
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("openai").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
 
+class SplendorRunner(GameRunner):
+    """Runner for Splendor with multiple action types."""
 
-def setup_ai_agents(game: SplendorGame, logging_config: LoggingConfig) -> None:
-    """Configure AI agents for all players."""
-    # Create LLM
-    if config.OPENROUTER_API_KEY:
-        llm = ChatOpenAI(
-            model=logging_config.openrouter_model,
-            api_key=config.OPENROUTER_API_KEY,
-            base_url="https://openrouter.ai/api/v1",
-        )
-        model_name = logging_config.openrouter_model
-    elif config.OPENAI_API_KEY:
-        llm = ChatOpenAI(
-            model=logging_config.openai_model,
-            api_key=config.OPENAI_API_KEY,
-        )
-        model_name = logging_config.openai_model
-    else:
-        raise ValueError("No API key found. Set OPENROUTER_API_KEY or OPENAI_API_KEY")
+    def handle_gem_limit(self, game, player_idx):
+        """Handle 10 gem limit by returning excess gems."""
+        gems_to_return = game.check_gem_limit(player_idx)
+        if gems_to_return:
+            print(f"Player {player_idx + 1} has more than 10 gems! Returning excess...")
+            return_str = ", ".join(
+                f"{ui._get_gem_icon(gem)}x{count}" for gem, count in gems_to_return.items()
+            )
+            print(f"  Returning: {return_str}")
+            game.board.return_gems(player_idx, gems_to_return)
+            time.sleep(1.5)
 
-    # Configure all players
-    prompt_builder = SplendorPromptBuilder()
+    def run_turn(self, game, player, game_logger):
+        """Custom turn handling for multiple action types."""
+        player_idx = game.state.current_player_idx
+        state_before = copy.deepcopy(game.state)
 
-    for player in game.players:
-        base_agent = LLMAgent(
-            llm=llm,
-            prompt_builder=prompt_builder,
-            output_schema=GameActionOutput,
-        )
-        player.agent = LoggedLLMAgent(base_agent, model_name)
+        if self.ui:
+            self.ui.refresh(game)
+        ui.render_player_details(game, player_idx)
 
+        try:
+            llm_output = player.agent.get_action(game, player)
+        except Exception as e:
+            print(f"Error getting action: {e}")
+            time.sleep(2)
+            game.next_turn()
+            return False
 
-def handle_gem_limit(game: SplendorGame, player_idx: int) -> None:
-    """Handle 10 gem limit by returning excess gems."""
-    gems_to_return = game.check_gem_limit(player_idx)
-    if gems_to_return:
-        player_name = f"Player {player_idx + 1}"
-        print(f"⚠️  {player_name} has more than 10 gems! Returning excess...")
+        action_type = llm_output.action_type
+        success = False
+        action_params = {}
 
-        # Show what's being returned
-        from cards import GemType
-
-        return_str = ", ".join(
-            f"{ui._get_gem_icon(gem)}×{count}" for gem, count in gems_to_return.items()
-        )
-        print(f"  Returning: {return_str}")
-
-        game.board.return_gems(player_idx, gems_to_return)
-        time.sleep(1.5)
-
-
-def run_turn(game: SplendorGame, game_logger) -> None:
-    """Run a single player turn."""
-    current_player = game.get_current_player()
-    player_idx = game.state.current_player_idx
-
-    # Capture state before
-    state_before = copy.deepcopy(game.state)
-
-    # Refresh UI
-    ui.refresh(game)
-    ui.render_player_details(game, player_idx)
-
-    # Get action from AI
-    try:
-        llm_output = current_player.agent.get_action(game, current_player)
-    except Exception as e:
-        print(f"⚠️  Error getting action: {e}")
-        time.sleep(2)
-        # Skip turn
-        game.next_turn()
-        return
-
-    # Process action based on type
-    action_type = llm_output.action_type
-    success = False
-    action_params = {}
-
-    if action_type == "take_gems":
-        action = TakeGemsAction()
-        action_params = {
-            "gem1": llm_output.gem1,
-            "gem2": llm_output.gem2,
-            "gem3": llm_output.gem3,
-            "take_two": llm_output.take_two,
-        }
-        if action.validate(game, current_player, **action_params):
-            # Show action
-            if llm_output.take_two:
-                details = f"2×{llm_output.gem1}"
+        if action_type == "take_gems":
+            action = TakeGemsAction()
+            action_params = {
+                "gem1": llm_output.gem1,
+                "gem2": llm_output.gem2,
+                "gem3": llm_output.gem3,
+                "take_two": llm_output.take_two,
+            }
+            if action.validate(game, player, **action_params):
+                if llm_output.take_two:
+                    details = f"2x{llm_output.gem1}"
+                else:
+                    details = f"{llm_output.gem1}, {llm_output.gem2}, {llm_output.gem3}"
+                ui.render_action("Take Gems", details)
+                action.apply(game, player, **action_params)
+                self.handle_gem_limit(game, player_idx)
+                success = True
             else:
-                details = f"{llm_output.gem1}, {llm_output.gem2}, {llm_output.gem3}"
+                print("Invalid gem taking action")
 
-            ui.render_action("Take Gems", details)
-
-            action.apply(game, current_player, **action_params)
-
-            # Check gem limit
-            handle_gem_limit(game, player_idx)
-
-            success = True
-        else:
-            print(f"⚠️  Invalid gem taking action")
-
-    elif action_type == "purchase":
-        action = PurchaseCardAction()
-        action_params = {"card_id": llm_output.card_id, "from_reserved": llm_output.from_reserved}
-        if action.validate(game, current_player, **action_params):
-            # Get card info before purchase
-            if llm_output.from_reserved:
-                card = None
-                for c in game.board.player_reserved[player_idx]:
-                    if c.card_id == llm_output.card_id:
-                        card = c
-                        break
+        elif action_type == "purchase":
+            action = PurchaseCardAction()
+            action_params = {"card_id": llm_output.card_id, "from_reserved": llm_output.from_reserved}
+            if action.validate(game, player, **action_params):
+                card = self._get_card_for_display(game, llm_output, player_idx)
+                if card:
+                    ui.render_action("Purchase Card", str(card))
+                action.apply(game, player, **action_params)
+                success = True
             else:
+                print("Invalid card purchase")
+
+        elif action_type == "reserve":
+            action = ReserveCardAction()
+            action_params = {"card_id": llm_output.card_id, "tier": llm_output.tier}
+            if action.validate(game, player, **action_params):
                 result = game.board.get_card_from_display(llm_output.card_id)
                 if result:
                     card, tier = result
-                    # Put it back temporarily
-                    if tier == 1:
-                        game.board.tier1_display.append(card)
-                    elif tier == 2:
-                        game.board.tier2_display.append(card)
-                    else:
-                        game.board.tier3_display.append(card)
+                    self._restore_card_to_display(game, card, tier)
+                    ui.render_action("Reserve Card", str(card))
+                action.apply(game, player, **action_params)
+                self.handle_gem_limit(game, player_idx)
+                success = True
+            else:
+                print("Invalid card reservation")
 
-            if card:
-                ui.render_action("Purchase Card", str(card))
+        if success:
+            state_after = copy.deepcopy(game.state)
 
-            action.apply(game, current_player, **action_params)
-            success = True
+            if game_logger.enabled:
+                llm_call_data = None
+                if hasattr(player.agent, '_last_llm_call'):
+                    llm_call_data = player.agent._last_llm_call
+                    player.agent._last_llm_call = None
+
+                game_logger.log_turn(
+                    player=player,
+                    state_before=state_before,
+                    state_after=state_after,
+                    board_before="",
+                    board_after="",
+                    action=action,
+                    action_params={**action_params, "action_type": action_type},
+                    action_valid=True,
+                    llm_call_data=llm_call_data,
+                )
         else:
-            print(f"⚠️  Invalid card purchase")
+            print("Turn failed, skipping...")
+            time.sleep(2)
 
-    elif action_type == "reserve":
-        action = ReserveCardAction()
-        action_params = {"card_id": llm_output.card_id, "tier": llm_output.tier}
-        if action.validate(game, current_player, **action_params):
-            # Get card info
+        # Check for nobles
+        qualifying_nobles = game.board.check_nobles(player_idx)
+        if qualifying_nobles:
+            noble = qualifying_nobles[0]
+            game.board.claim_noble(player_idx, noble)
+            game.state.player_nobles[player_idx].append(noble)
+            ui.render_noble_claim(player.team, noble)
+            time.sleep(2)
+
+        time.sleep(1)
+        return success
+
+    def _get_card_for_display(self, game, llm_output, player_idx):
+        """Get card info for display purposes."""
+        if llm_output.from_reserved:
+            for c in game.board.player_reserved[player_idx]:
+                if c.card_id == llm_output.card_id:
+                    return c
+        else:
             result = game.board.get_card_from_display(llm_output.card_id)
             if result:
                 card, tier = result
-                # Put it back temporarily
-                if tier == 1:
-                    game.board.tier1_display.append(card)
-                elif tier == 2:
-                    game.board.tier2_display.append(card)
-                else:
-                    game.board.tier3_display.append(card)
+                self._restore_card_to_display(game, card, tier)
+                return card
+        return None
 
-                ui.render_action("Reserve Card", str(card))
-
-            action.apply(game, current_player, **action_params)
-
-            # Check gem limit (from gold token)
-            handle_gem_limit(game, player_idx)
-
-            success = True
+    def _restore_card_to_display(self, game, card, tier):
+        """Temporarily restore card to display."""
+        if tier == 1:
+            game.board.tier1_display.append(card)
+        elif tier == 2:
+            game.board.tier2_display.append(card)
         else:
-            print(f"⚠️  Invalid card reservation")
+            game.board.tier3_display.append(card)
 
-    if success:
-        # Capture state after
-        state_after = copy.deepcopy(game.state)
-
-        # Log turn
-        if game_logger.enabled:
-            llm_call_data = None
-            if hasattr(current_player.agent, '_last_llm_call'):
-                llm_call_data = current_player.agent._last_llm_call
-                current_player.agent._last_llm_call = None
-
-            game_logger.log_turn(
-                player=current_player,
-                state_before=state_before,
-                state_after=state_after,
-                board_before="",
-                board_after="",
-                action=action,
-                action_params={**action_params, "action_type": action_type},
-                action_valid=True,
-                llm_call_data=llm_call_data
-            )
-    else:
-        print(f"⚠️  Turn failed, skipping...")
+    def run_loop(self, game, game_logger):
+        """Game loop with game end checking."""
+        if self.ui:
+            self.ui.refresh(game)
         time.sleep(2)
 
-    # Check for nobles
-    qualifying_nobles = game.board.check_nobles(player_idx)
-    if qualifying_nobles:
-        noble = qualifying_nobles[0]
-        game.board.claim_noble(player_idx, noble)
-        game.state.player_nobles[player_idx].append(noble)
-        ui.render_noble_claim(current_player.team, noble)
-        time.sleep(2)
+        while not game.state.is_terminal():
+            player = game.get_current_player()
+            if player is None:
+                break
 
-    time.sleep(1)
+            self.run_turn(game, player, game_logger)
+            game.check_game_end()
 
+            if not game.state.is_over:
+                game.next_turn()
 
-def run_game(num_players: int | None = None) -> None:
-    """Run a Splendor game."""
-    # Load logging configuration
-    logging_config = LoggingConfig.load(Path(__file__).parent)
-
-    # Create game logger
-    game_logger = GameLogger(logging_config)
-
-    # Create and setup game
-    game = SplendorGame()
-    game.setup(num_players=num_players or config.num_players)
-
-    # Log game start
-    if game_logger.enabled:
-        game_logger.start_game(game, {"num_players": num_players or config.num_players})
-
-    # Configure AI agents
-    setup_ai_agents(game, logging_config)
-
-    # Initial display
-    ui.refresh(game)
-    time.sleep(2)
-
-    # Game loop
-    while not game.state.is_terminal():
-        run_turn(game, game_logger)
-
-        # Check for game end
-        game.check_game_end()
-
-        if not game.state.is_over:
-            game.next_turn()
-
-    # Log game end
-    if game_logger.enabled:
-        game_logger.end_game(game)
-
-    # Game ended
-    ui.render_game_end(game)
-
-
-def main():
-    """Main entry point."""
-    if not config.OPENAI_API_KEY and not config.OPENROUTER_API_KEY:
-        print("❌ Error: No API key found!")
-        print("Set OPENROUTER_API_KEY or OPENAI_API_KEY environment variable")
-        return
-
-    try:
-        # You can customize number of players here (2-4, default 3)
-        run_game(num_players=config.num_players)
-    except KeyboardInterrupt:
-        print("\n\nGame interrupted by user")
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
-        import traceback
-
-        traceback.print_exc()
+    def on_game_end(self, game):
+        """Show final game screen."""
+        ui.render_game_end(game)
 
 
 if __name__ == "__main__":
-    main()
+    SplendorRunner.main(
+        game_class=SplendorGame,
+        prompt_builder_class=SplendorPromptBuilder,
+        output_schema=GameActionOutput,
+        ui_module=ui,
+        game_dir=Path(__file__).parent,
+        default_num_players=config.num_players,
+    )()

@@ -22,10 +22,6 @@ class SplendorState(GameState):
     final_round_triggered: bool = False  # Someone reached 15 points
     turns_in_final_round: int = 0
 
-    def is_terminal(self) -> bool:
-        """Check if game is over."""
-        return self.is_over
-
     def get_winner(self) -> str | None:
         """Get the winner as player name."""
         if self.winner is None:

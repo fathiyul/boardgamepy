@@ -22,10 +22,6 @@ class SushiGoState(GameState):
     # Turn tracking within round
     waiting_for_players: set[int] = field(default_factory=set)  # Players who haven't picked yet
 
-    def is_terminal(self) -> bool:
-        """Check if game is over."""
-        return self.is_over
-
     def get_winner(self) -> str | None:
         """Get the winner as player name."""
         if self.winner is None:
