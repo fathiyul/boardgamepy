@@ -142,11 +142,12 @@ def render_result(game: "WavelengthGame") -> None:
 
     if game.board.opponent_prediction:
         prediction = game.board.opponent_prediction
-        actual_side = "left" if game.board.dial_position < game.board.target_center else "right"
+        # actual_side: where is TARGET relative to GUESS?
+        actual_side = "left" if game.board.target_center < game.board.dial_position else "right"
         if opponent_correct:
             print(f"{opponent_team} predicted {term.FG_YELLOW}{prediction}{term.RESET} correctly → -1 point")
         else:
-            print(f"{opponent_team} predicted {term.FG_YELLOW}{prediction}{term.RESET} incorrectly (was {actual_side})")
+            print(f"{opponent_team} predicted {term.FG_YELLOW}{prediction}{term.RESET} incorrectly (target was {actual_side} of guess)")
 
     print(f"\n{term.BOLD}Total for {current_team}: {term.FG_GREEN}{final_points} points{term.RESET}")
     print(f"{term.BOLD}{term.FG_GREEN}{'=' * 70}{term.RESET}\n")

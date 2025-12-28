@@ -74,11 +74,14 @@ class WavelengthBoard(Board):
             base_points = 0
 
         # Check opponent prediction
+        # Opponent predicts: is the TARGET to the LEFT or RIGHT of the GUESS?
         opponent_correct = False
         if self.opponent_prediction and self.dial_position != self.target_center:
-            if self.dial_position < self.target_center and self.opponent_prediction == "left":
+            # Target is LEFT of guess means target < dial_position
+            if self.target_center < self.dial_position and self.opponent_prediction == "left":
                 opponent_correct = True
-            elif self.dial_position > self.target_center and self.opponent_prediction == "right":
+            # Target is RIGHT of guess means target > dial_position
+            elif self.target_center > self.dial_position and self.opponent_prediction == "right":
                 opponent_correct = True
 
         return base_points, opponent_correct

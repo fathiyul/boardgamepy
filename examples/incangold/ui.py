@@ -115,17 +115,21 @@ def render_decision_prompt(game: "IncanGoldGame", player_idx: int) -> None:
     print()
 
 
-def render_decision(player_name: str, decision: str, reasoning: str | None = None) -> None:
+def render_decision(player_name: str, decision: str, reasoning: str | None = None,
+                    display_name: str | None = None) -> None:
     """Render a player's decision."""
     player_idx = int(player_name.split()[-1]) - 1
     color = term.get_player_color(player_idx)
+
+    # Use display_name if provided, otherwise use player_name
+    shown_name = display_name if display_name else player_name
 
     if decision == "continue":
         decision_text = f"{term.FG_GREEN}CONTINUES exploring{term.RESET}"
     else:
         decision_text = f"{term.FG_BLUE}RETURNS to camp{term.RESET}"
 
-    print(f"{color}[{player_name}]{term.RESET} {decision_text}")
+    print(f"{color}[{shown_name}]{term.RESET} {decision_text}")
     if reasoning:
         print(f"  {term.DIM}Reasoning: {reasoning}{term.RESET}")
     print()
