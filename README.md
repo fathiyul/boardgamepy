@@ -28,19 +28,19 @@ Download the latest release from [GitHub Releases](https://github.com/fathiyul/b
 
 ```bash
 # Download and install the wheel file
-pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.1.0/boardgamepy-0.1.0-py3-none-any.whl
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.2.0/boardgamepy-0.2.0-py3-none-any.whl
 
 # With AI support (for LLM agents)
-pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.1.0/boardgamepy-0.1.0-py3-none-any.whl[ai]
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.2.0/boardgamepy-0.2.0-py3-none-any.whl[ai]
 
 # With all optional dependencies
-pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.1.0/boardgamepy-0.1.0-py3-none-any.whl[ai,examples]
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.2.0/boardgamepy-0.2.0-py3-none-any.whl[ai,examples]
 ```
 
 Or download the `.whl` file manually and install:
 
 ```bash
-pip install boardgamepy-0.1.0-py3-none-any.whl
+pip install boardgamepy-0.2.0-py3-none-any.whl
 ```
 
 ### From Source (for development)
