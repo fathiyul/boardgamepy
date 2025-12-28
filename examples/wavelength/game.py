@@ -27,16 +27,17 @@ class WavelengthGame(Game):
         self.teams: dict[int, list[Player]]  # team_idx -> list of players
         self.num_players: int = 0
 
-    def setup(self, num_players: int = 4, target_score: int | None = None) -> None:
+    def setup(self, num_players: int = 4, target_score: int | None = None, target: int | None = None) -> None:
         """
         Setup Wavelength game.
 
         Args:
-            num_players: Number of players (must be even, 4-12)
+            num_players: Number of players (fixed at 4: 2 per team)
             target_score: Points needed to win (default: 10)
+            target: Alias for target_score (for CLI compatibility)
         """
-        if num_players < 4 or num_players > 12 or num_players % 2 != 0:
-            raise ValueError("Wavelength requires even number of players (4-12)")
+        # Wavelength is designed for exactly 4 players (2 per team)
+        num_players = 4
 
         self.num_players = num_players
         self.board = WavelengthBoard()
@@ -44,12 +45,21 @@ class WavelengthGame(Game):
         self.history = GameHistory()
 
         # Set target score if provided
-        if target_score is not None:
-            self.state.target_score = target_score
+        effective_target = target_score or target
+        if effective_target is not None:
+            self.state.target_score = effective_target
 
         # Create players and divide into teams
+        # First half goes to Team 1, second half to Team 2
+        half = num_players // 2
         self.players = [
-            Player(team=f"Team {(i % 2) + 1}", role="player", agent=None)
+            Player(
+                name=f"Player {i + 1}",
+                team=f"Team {1 if i < half else 2}",
+                role="player",
+                agent=None,
+                player_idx=i,
+            )
             for i in range(num_players)
         ]
 

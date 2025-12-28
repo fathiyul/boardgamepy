@@ -27,7 +27,7 @@ class SplendorHumanAgent:
 
     def get_action(self, game: "SplendorGame", player: "Player") -> GameActionOutput:
         """Get action from human player via console input."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Show current situation
         self._show_player_status(game, player_idx)

@@ -17,7 +17,7 @@ class SushiGoRunner(GameRunner):
 
     def run_turn(self, game, player, game_logger):
         """Handle a single player's card selection."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         state_before = copy.deepcopy(game.state)
         board_before = copy.deepcopy(game.board)

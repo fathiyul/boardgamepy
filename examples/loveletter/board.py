@@ -141,7 +141,7 @@ class LoveLetterBoard(Board):
         player: Player = context.player
 
         # Determine player index
-        player_idx = int(player.team.split()[-1]) - 1  # "Player 1" -> 0
+        player_idx = player.player_idx
 
         lines = ["=== LOVE LETTER ===", ""]
 

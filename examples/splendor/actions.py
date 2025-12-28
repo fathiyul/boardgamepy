@@ -94,7 +94,7 @@ class TakeGemsAction(Action["SplendorGame"]):
         **kwargs,
     ) -> bool:
         """Validate gem taking action."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Parse gems
         g1 = self._parse_gem(gem1)
@@ -154,7 +154,7 @@ class TakeGemsAction(Action["SplendorGame"]):
         **kwargs,
     ) -> None:
         """Apply gem taking action."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         g1 = self._parse_gem(gem1)
 
@@ -200,7 +200,7 @@ class PurchaseCardAction(Action["SplendorGame"]):
         **kwargs,
     ) -> bool:
         """Validate card purchase."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Get the card
         if from_reserved:
@@ -237,7 +237,7 @@ class PurchaseCardAction(Action["SplendorGame"]):
         **kwargs,
     ) -> None:
         """Apply card purchase."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Get the card
         if from_reserved:
@@ -287,7 +287,7 @@ class ReserveCardAction(Action["SplendorGame"]):
         **kwargs,
     ) -> bool:
         """Validate card reservation."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Can't reserve more than 3 cards
         if len(game.board.player_reserved[player_idx]) >= 3:
@@ -319,7 +319,7 @@ class ReserveCardAction(Action["SplendorGame"]):
         **kwargs,
     ) -> None:
         """Apply card reservation."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Get the card
         result = game.board.get_card_from_display(card_id)

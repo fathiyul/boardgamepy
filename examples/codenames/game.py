@@ -53,10 +53,10 @@ class CodenamesGame(Game):
         # Create players (4 players: 2 per team, 2 roles)
         # By default, all AI players - can be configured later
         self.players = [
-            Player(name="Red Spymaster", team="Red", role="Spymaster", agent_type="ai"),
-            Player(name="Red Operatives", team="Red", role="Operatives", agent_type="ai"),
-            Player(name="Blue Spymaster", team="Blue", role="Spymaster", agent_type="ai"),
-            Player(name="Blue Operatives", team="Blue", role="Operatives", agent_type="ai"),
+            Player(name="Red Spymaster", team="Red", role="Spymaster", agent_type="ai", player_idx=0),
+            Player(name="Red Operatives", team="Red", role="Operatives", agent_type="ai", player_idx=1),
+            Player(name="Blue Spymaster", team="Blue", role="Spymaster", agent_type="ai", player_idx=2),
+            Player(name="Blue Operatives", team="Blue", role="Operatives", agent_type="ai", player_idx=3),
         ]
 
     def get_current_player(self) -> Player:

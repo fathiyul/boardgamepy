@@ -35,7 +35,7 @@ class MakeDecisionAction(Action["IncanGoldGame"]):
         **kwargs,
     ) -> bool:
         """Validate decision."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Must be in decide phase
         if game.state.phase != "decide":
@@ -63,7 +63,7 @@ class MakeDecisionAction(Action["IncanGoldGame"]):
         **kwargs,
     ) -> None:
         """Apply decision."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Record decision
         game.state.decisions[player_idx] = decision

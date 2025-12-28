@@ -207,7 +207,7 @@ class SushiGoBoard(Board):
         from boardgamepy.core.player import Player
 
         player: Player = context.player
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         lines = ["=== SUSHI GO! ===", ""]
 

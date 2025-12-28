@@ -67,7 +67,7 @@ OUTPUT FORMAT:
         """Build user prompt with current game state."""
         from boardgamepy.protocols import SimpleViewContext
 
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
         context = SimpleViewContext(player=player, game_state=game.state)
         board_view = game.board.get_prompt_view(context)
 

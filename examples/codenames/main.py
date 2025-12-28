@@ -60,7 +60,7 @@ class CodenamesRunner(GameRunner):
 
             clue_colored = ui.term.colorize(
                 f"{llm_output.clue} (Count: {llm_output.count})",
-                fg=ui._team_fg(player.team)
+                fg=ui._team_fg(player.team),
             )
             ui.render_message(player.team, "Spymaster", clue_colored)
             ui.render_reasoning(llm_output.reasoning)
@@ -81,7 +81,7 @@ class CodenamesRunner(GameRunner):
             # Log turn
             if game_logger.enabled:
                 llm_call_data = None
-                if hasattr(player.agent, '_last_llm_call'):
+                if hasattr(player.agent, "_last_llm_call"):
                     llm_call_data = player.agent._last_llm_call
                     player.agent._last_llm_call = None
 
@@ -111,16 +111,17 @@ class CodenamesRunner(GameRunner):
                 player.team,
                 player.role,
                 f"Invalid action! (Strike {game.state.consecutive_invalid_actions}/3)",
-                kind="warn"
+                kind="warn",
             )
 
             if game.state.consecutive_invalid_actions >= 3:
                 game.state.is_over = True
                 game.state.winner = "Blue" if player.team == "Red" else "Red"
                 ui.render_message(
-                    None, "PENALTY",
+                    None,
+                    "PENALTY",
                     f"{player.team} made 3 consecutive invalid actions and loses!",
-                    kind="error"
+                    kind="error",
                 )
 
             time.sleep(2)
@@ -149,7 +150,7 @@ class CodenamesRunner(GameRunner):
 
     def on_game_end(self, game):
         """Show final game screen."""
-        ui.refresh(game, "operatives", show_history=True)
+        ui.refresh(game, "spymaster", show_history=True)
         winner = game.state.get_winner()
         if winner:
             ui.render_message(None, "GAME OVER", f"Winner: {winner}", kind="success")
@@ -174,6 +175,7 @@ def main():
     except Exception as e:
         print(f"\nError: {e}")
         import traceback
+
         traceback.print_exc()
 
 

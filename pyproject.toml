@@ -1,6 +1,6 @@
 [project]
 name = "boardgamepy"
-version = "0.3.0"
+version = "0.3.1"
 description = "BoardGamePy - A framework for building AI-playable board games"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -146,8 +146,8 @@ class StrategyRPSGame(Game):
         self.history = GameHistory()
         self.history.start_new_round()
         self.players = [
-            Player(name="Player 1", team="1"),
-            Player(name="Player 2", team="2"),
+            Player(name="Player 1", team="Player 1", player_idx=0),
+            Player(name="Player 2", team="Player 2", player_idx=1),
         ]
         self.actions = [StrategyChooseAction()]
 

@@ -33,7 +33,7 @@ class SushiGoHumanAgent:
 
     def get_action(self, game: "SushiGoGame", player: "Player") -> PlayCardOutput:
         """Get action from human player via console input."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
         hand = game.board.hands[player_idx]
         collection = game.board.collections[player_idx]
 

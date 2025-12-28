@@ -20,6 +20,7 @@ class Player:
         agent: Agent controlling this player (human or AI)
         agent_type: Type of agent ("human" or "ai")
         name: Optional player name for display
+        player_idx: Zero-based player index for direct access
     """
 
     team: str | None = None
@@ -27,6 +28,7 @@ class Player:
     agent: "PlayerAgent | None" = None
     agent_type: str = "ai"
     name: str | None = None
+    player_idx: int | None = None
 
     def __post_init__(self):
         """Initialize agent if not provided."""

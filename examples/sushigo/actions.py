@@ -40,7 +40,7 @@ class PlayCardAction(Action["SushiGoGame"]):
         **kwargs,
     ) -> bool:
         """Validate card play."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Check if player has cards in hand
         if not game.board.hands[player_idx]:
@@ -80,7 +80,7 @@ class PlayCardAction(Action["SushiGoGame"]):
         **kwargs,
     ) -> None:
         """Apply card play."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
         hand = game.board.hands[player_idx]
 
         # Find and play the first card

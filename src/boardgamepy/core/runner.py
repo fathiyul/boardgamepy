@@ -1,5 +1,6 @@
 """Game runner for eliminating main.py boilerplate."""
 
+import argparse
 import copy
 import logging
 import os
@@ -383,6 +384,7 @@ class GameRunner:
         ui_module: Any = None,
         game_dir: Path | None = None,
         default_num_players: int | None = None,
+        default_target: int | None = None,
     ) -> Callable[[], None]:
         """
         Create a main() function for a game.
@@ -401,8 +403,30 @@ class GameRunner:
             main = GameRunner.main(TicTacToeGame, TicTacToePromptBuilder, ...)
             if __name__ == "__main__":
                 main()
+
+        CLI arguments:
+            --num-players, -n: Number of players (if game supports variable players)
+            --target, -t: Target score/tokens to win (if game supports variable target)
         """
         def main_func():
+            # Parse command line arguments
+            parser = argparse.ArgumentParser(
+                description=f"Run {game_class.__name__ if hasattr(game_class, '__name__') else 'game'}"
+            )
+            parser.add_argument(
+                "-n", "--num-players",
+                type=int,
+                default=default_num_players,
+                help="Number of players"
+            )
+            parser.add_argument(
+                "-t", "--target",
+                type=int,
+                default=default_target,
+                help="Target score/tokens to win"
+            )
+            args = parser.parse_args()
+
             # Load environment variables from .env file
             load_dotenv(game_dir / ".env" if game_dir else None)
             load_dotenv()  # Also check current directory and parents
@@ -422,7 +446,11 @@ class GameRunner:
                     ui_module=ui_module,
                     game_dir=game_dir or Path.cwd(),
                 )
-                runner.run(num_players=default_num_players)
+                # Build game config from args
+                game_config = {}
+                if args.target is not None:
+                    game_config["target"] = args.target
+                runner.run(num_players=args.num_players, **game_config)
             except KeyboardInterrupt:
                 print("\n\nGame interrupted by user")
             except Exception as e:

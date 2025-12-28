@@ -151,7 +151,7 @@ class CoupBoard(Board):
         player: Player = context.player
 
         # Determine player index
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         lines = ["=== COUP ===", ""]
 

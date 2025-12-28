@@ -38,19 +38,19 @@ Download the latest release from [GitHub Releases](https://github.com/fathiyul/b
 
 ```bash
 # Download and install the wheel file
-pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.0/boardgamepy-0.3.0-py3-none-any.whl
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.1/boardgamepy-0.3.1-py3-none-any.whl
 
 # With AI support (for LLM agents)
-pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.0/boardgamepy-0.3.0-py3-none-any.whl[ai]
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.1/boardgamepy-0.3.1-py3-none-any.whl[ai]
 
 # With all optional dependencies
-pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.0/boardgamepy-0.3.0-py3-none-any.whl[ai,examples]
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.1/boardgamepy-0.3.1-py3-none-any.whl[ai,examples]
 ```
 
 Or download the `.whl` file manually and install:
 
 ```bash
-pip install boardgamepy-0.3.0-py3-none-any.whl
+pip install boardgamepy-0.3.1-py3-none-any.whl
 ```
 
 ### From Source (for development)
@@ -144,8 +144,31 @@ if __name__ == "__main__":
         prompt_builder_class=MyPromptBuilder,
         output_schema=MoveOutput,
         game_dir=Path(__file__).parent,
+        default_num_players=2,  # Default if not specified via CLI
+        default_target=3,       # Default target score/tokens
     )()
 ```
+
+Games can be run with CLI arguments to configure number of players and target score:
+
+```bash
+# Run with default settings
+python examples/loveletter/main.py
+
+# Specify number of players
+python examples/loveletter/main.py -n 3
+
+# Specify target score/tokens to win
+python examples/loveletter/main.py -t 5
+
+# Combine both
+python examples/loveletter/main.py -n 4 -t 7
+```
+
+| Flag | Description |
+|------|-------------|
+| `-n, --num-players` | Number of players (for games with variable player count) |
+| `-t, --target` | Target score/tokens to win (for games with variable win condition) |
 
 Or run manually:
 

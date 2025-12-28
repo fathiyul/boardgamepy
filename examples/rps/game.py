@@ -66,15 +66,21 @@ class RPSGame(Game):
     min_players = 2
     max_players = 2
 
-    def setup(self, max_rounds: int = 3, **config):
-        """Initialize the game."""
-        self.state = RPSState(max_rounds=max_rounds)
+    def setup(self, max_rounds: int = 3, target: int | None = None, **config):
+        """Initialize the game.
+
+        Args:
+            max_rounds: Maximum number of rounds (default: 3)
+            target: Alias for max_rounds (for CLI compatibility)
+        """
+        effective_max_rounds = target if target is not None else max_rounds
+        self.state = RPSState(max_rounds=effective_max_rounds)
         self.board = RPSBoard()
         self.history = GameHistory()
         self.history.start_new_round()
         self.players = [
-            Player(name="Player 1", team="1"),
-            Player(name="Player 2", team="2")
+            Player(name="Player 1", team="Player 1", player_idx=0),
+            Player(name="Player 2", team="Player 2", player_idx=1)
         ]
         self.actions = [ChooseAction()]
 

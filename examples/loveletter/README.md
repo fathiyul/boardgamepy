@@ -136,7 +136,7 @@ This implementation showcases several advanced boardgamepy features:
 def get_view(self, context: ViewContext) -> str:
     # Players only see their own hand
     # Other hands are hidden (unless revealed by Priest)
-    player_idx = int(player.team.split()[-1]) - 1
+    player_idx = player.player_idx
     hand_str = ", ".join(str(card) for card in self.hands[player_idx])
 ```
 

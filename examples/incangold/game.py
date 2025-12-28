@@ -43,7 +43,7 @@ class IncanGoldGame(Game):
 
         # Create players
         self.players = [
-            Player(name=f"Player {i + 1}", team=f"Player {i + 1}", role="player", agent=None)
+            Player(name=f"Player {i + 1}", team=f"Player {i + 1}", role="player", agent=None, player_idx=i)
             for i in range(num_players)
         ]
 

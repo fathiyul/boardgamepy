@@ -26,13 +26,14 @@ class LoveLetterGame(Game):
         self.players: list[Player]
         self.num_players: int = 0
 
-    def setup(self, num_players: int = 2, target_tokens: int | None = None) -> None:
+    def setup(self, num_players: int = 2, target_tokens: int | None = None, target: int | None = None) -> None:
         """
         Setup Love Letter game.
 
         Args:
             num_players: Number of players (2-4)
             target_tokens: Number of tokens to win (optional, uses defaults if not specified)
+            target: Alias for target_tokens (for CLI compatibility)
         """
         if num_players < 2 or num_players > 4:
             raise ValueError("Love Letter requires 2-4 players")
@@ -42,9 +43,10 @@ class LoveLetterGame(Game):
         self.state = LoveLetterState()
 
         # Official rules use 4-7 rounds, but each round is independent and complete
-        # Can be overridden via target_tokens parameter
-        if target_tokens is not None:
-            self.state.target_tokens = target_tokens
+        # Can be overridden via target_tokens or target parameter
+        effective_target = target_tokens or target
+        if effective_target is not None:
+            self.state.target_tokens = effective_target
         else:
             self.state.target_tokens = 3
 
@@ -60,6 +62,7 @@ class LoveLetterGame(Game):
                 team=f"Player {i + 1}",
                 role="player",
                 agent=None,
+                player_idx=i,
             )
             for i in range(num_players)
         ]

@@ -13,7 +13,7 @@ class IncanGoldHumanAgent:
 
     def get_action(self, game: "IncanGoldGame", player: "Player") -> DecisionOutput:
         """Get action from human player via console input."""
-        player_idx = int(player.team.split()[-1]) - 1
+        player_idx = player.player_idx
 
         # Show current situation
         temp_gems = game.board.player_temp_gems[player_idx]
