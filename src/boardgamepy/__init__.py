@@ -8,7 +8,7 @@ This package provides abstractions for creating board games with:
 - Human/AI hybrid play
 """
 
-__version__ = "0.1.0"
+__version__ = "0.3.2"
 
 # Core abstractions
 from boardgamepy.core import (
