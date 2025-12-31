@@ -1,0 +1,35 @@
+site_name: BoardGamePy
+site_url: https://example.com/boardgamepy # Placeholder
+repo_url: https://github.com/fathiyul/boardgamepy
+repo_name: fathiyul/boardgamepy
+site_description: A lean Python framework for building AI-playable board games.
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: google
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md

@@ -14,7 +14,7 @@ A lean Python framework for building AI-playable board games with reusable abstr
   <em>Demo: Codenames with AI agents built using BoardGamePy</em>
 </p>
 
-**📚 [Complete Documentation](docs/)** | **🚀 [Getting Started Tutorial](docs/getting-started.md)** | **⚡ [Quick Start](QUICKSTART.md)**
+**📚 [Complete Documentation](docs/index.md)** | **🚀 [Getting Started Tutorial](docs/getting-started.md)** | **⚡ [Quick Start](QUICKSTART.md)**
 
 ## Overview
 
@@ -38,19 +38,19 @@ Download the latest release from [GitHub Releases](https://github.com/fathiyul/b
 
 ```bash
 # Download and install the wheel file
-pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.1/boardgamepy-0.3.1-py3-none-any.whl
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.2/boardgamepy-0.3.2-py3-none-any.whl
 
 # With AI support (for LLM agents)
-pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.1/boardgamepy-0.3.1-py3-none-any.whl[ai]
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.2/boardgamepy-0.3.2-py3-none-any.whl[ai]
 
 # With all optional dependencies
-pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.1/boardgamepy-0.3.1-py3-none-any.whl[ai,examples]
+pip install https://github.com/fathiyul/boardgamepy/releases/download/v0.3.2/boardgamepy-0.3.2-py3-none-any.whl[ai,examples]
 ```
 
 Or download the `.whl` file manually and install:
 
 ```bash
-pip install boardgamepy-0.3.1-py3-none-any.whl
+pip install boardgamepy-0.3.2-py3-none-any.whl
 ```
 
 ### From Source (for development)
@@ -294,6 +294,31 @@ python view_logs.py export TicTacToe 1000
 ```
 
 See [LOGGING_GUIDE.md](LOGGING_GUIDE.md) for complete documentation.
+
+## Documentation
+
+### Building Documentation Locally
+
+The project uses [MkDocs](https://www.mkdocs.org/) with the Material theme for documentation.
+
+**Install dependencies:**
+```bash
+pip install mkdocs mkdocs-material mkdocstrings[python]
+```
+
+**Serve documentation locally:**
+```bash
+mkdocs serve
+```
+
+Then open your browser to [http://127.0.0.1:8000](http://127.0.0.1:8000) to view the documentation with live reloading.
+
+**Build static documentation:**
+```bash
+mkdocs build
+```
+
+This generates static HTML files in the `site/` directory that can be deployed to any web server.
 
 ## Examples
 
