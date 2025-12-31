@@ -88,15 +88,19 @@ Scoring rewards ambiguity and penalizes clarity.
 
 #### Situation Cards
 
-- A situation card scores **2 points** if it receives **some but not all** of the votes.
-- A situation card scores **1 point** if it receives **zero votes**.
-- A situation card scores **0 points** if it receives **all votes**.
+- A situation card scores **1 point** if it receives **some but not all** of the votes.
+- A situation card scores **0 points** if it receives **zero votes**.
+- A situation card scores **-1 point** if it receives **all votes** (too obvious - penalty).
+
+#### Correct Guesses
+
+Each player who **correctly votes for the Storyteller's card** earns **+1 bonus point**.
 
 #### Storyteller
 
-The Storyteller scores **3 points** if:
+The Storyteller scores **1 point** if:
 - At least **two different situation cards** receive votes
-- And **no single card** receives all votes
+- Including the **Storyteller's own card** (it must receive at least one vote)
 
 Otherwise, the Storyteller scores **0 points**.
 
@@ -153,17 +157,19 @@ The player with the highest score wins.
 - Sword situation → 0 votes
 
 **Scoring:**
-- Dragon card scores 2 points
-- Throne card scores 2 points
-- Sword card scores 1 point
-- Storyteller scores 3 points
+- Dragon card scores 1 point (2 votes)
+- Throne card scores 1 point (1 vote)
+- Sword card scores 0 points (0 votes)
+- Players who voted for Dragon card earn +1 bonus point for correct guess
+- Storyteller scores 1 point (at least 2 cards voted, including their own)
 
 ---
 
 ## Design Notes
 
 - DixiQuote rewards players who understand how others interpret language
-- Overly literal clues tend to collapse voting and score poorly
+- Overly literal clues cause all votes to go to one card, resulting in a -1 point penalty
+- Too obscure clues result in zero points for everyone
 - The most successful quotes create multiple plausible readings
 
 ---

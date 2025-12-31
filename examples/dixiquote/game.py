@@ -158,20 +158,21 @@ class DixiQuoteGame(Game):
 
         for situation, votes in vote_counts.items():
             if votes == 0:
-                points = 1  # No votes
+                points = 0  # No votes
             elif votes == num_voters:
-                points = 0  # All votes (too obvious)
+                points = -1  # All votes (too obvious - penalty)
             else:
-                points = 2  # Some but not all votes
+                points = 1  # Some but not all votes
 
             situation_scores[situation] = points
 
             # Award points to the player who submitted this situation
             player_idx = situation_to_player[situation]
-            self.state.scores[player_idx] = self.state.scores.get(player_idx, 0) + points
+            current_score = self.state.scores.get(player_idx, 0)
+            self.state.scores[player_idx] = max(0, current_score + points)
 
         # Calculate storyteller bonus
-        # Storyteller gets 3 points if at least 2 different cards get votes and no card gets all votes
+        # Storyteller gets 1 point if at least 2 different cards get votes, including their own
         # UNLESS all other players were skipped (then give storyteller the bonus anyway)
         num_non_storyteller_players = len(self.players) - 1
         num_skipped_non_storyteller = sum(
@@ -180,14 +181,20 @@ class DixiQuoteGame(Game):
 
         # If all other players were skipped, give storyteller the bonus automatically
         if num_skipped_non_storyteller >= num_non_storyteller_players:
-            self.state.scores[self.state.storyteller_idx] += 3
+            self.state.scores[self.state.storyteller_idx] += 1
         else:
-            # Normal scoring: at least 2 different cards get votes and no card gets all votes
+            # Normal scoring: at least 2 different cards get votes and storyteller's card is one of them
             cards_with_votes = sum(1 for v in vote_counts.values() if v > 0)
-            no_card_has_all = all(v < num_voters for v in vote_counts.values())
+            storyteller_votes = vote_counts.get(self.state.storyteller_situation, 0)
 
-            if cards_with_votes >= 2 and no_card_has_all:
-                self.state.scores[self.state.storyteller_idx] += 3
+            if cards_with_votes >= 2 and storyteller_votes > 0:
+                self.state.scores[self.state.storyteller_idx] += 1
+
+        # Award bonus points to players who correctly guessed the storyteller's card
+        if self.state.storyteller_situation:
+            for voter_idx, voted_situation in self.state.votes.items():
+                if voted_situation == self.state.storyteller_situation:
+                    self.state.scores[voter_idx] = self.state.scores.get(voter_idx, 0) + 1
 
         return situation_scores
 

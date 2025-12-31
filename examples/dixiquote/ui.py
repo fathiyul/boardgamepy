@@ -187,14 +187,14 @@ def render_scoring_results(game: "DixiQuoteGame", situation_scores: dict[str, in
             vote_str = f"{term.FG_CYAN}{votes} vote{'s' if votes != 1 else ''}{term.RESET}"
 
         # Colorize points
-        if points == 0:
+        if points < 0:
+            point_str = f"{term.FG_RED}{term.BOLD}{points} pts{term.RESET}"
+        elif points == 0:
             point_str = f"{term.DIM}+{points} pts{term.RESET}"
         elif points == 1:
             point_str = f"{term.FG_YELLOW}+{points} pt{term.RESET}"
-        elif points == 2:
+        else:
             point_str = f"{term.FG_GREEN}{term.BOLD}+{points} pts{term.RESET}"
-        else:  # 3 points (storyteller bonus)
-            point_str = f"{term.FG_BRIGHT_GREEN}{term.BOLD}+{points} pts{term.RESET}"
 
         # Show situation (truncated)
         print(f"  {term.DIM}{situation[:70]}...{term.RESET}")
@@ -229,17 +229,34 @@ def render_scoring_results(game: "DixiQuoteGame", situation_scores: dict[str, in
 
     print(f"{term.BOLD}Storyteller Bonus:{term.RESET}")
     if num_skipped_non_storyteller >= num_non_storyteller:
-        bonus_pts = 3
-        print(f"  {storyteller_name} {term.FG_BRIGHT_GREEN}{term.BOLD}+{bonus_pts} pts{term.RESET} (All other players skipped)")
+        bonus_pts = 1
+        print(f"  {storyteller_name} {term.FG_BRIGHT_GREEN}{term.BOLD}+{bonus_pts} pt{term.RESET} (All other players skipped)")
     else:
         cards_with_votes = sum(1 for v in vote_counts.values() if v > 0)
-        no_card_has_all = all(v < len(game.players) - 1 for v in vote_counts.values())
+        storyteller_situation = game.state.storyteller_situation or ""
+        storyteller_votes = vote_counts.get(storyteller_situation, 0)
 
-        if cards_with_votes >= 2 and no_card_has_all:
-            bonus_pts = 3
-            print(f"  {storyteller_name} {term.FG_BRIGHT_GREEN}{term.BOLD}+{bonus_pts} pts{term.RESET} (Good ambiguity!)")
+        if cards_with_votes >= 2 and storyteller_votes > 0:
+            bonus_pts = 1
+            print(f"  {storyteller_name} {term.FG_BRIGHT_GREEN}{term.BOLD}+{bonus_pts} pt{term.RESET} (Good interpretable clue!)")
         else:
-            print(f"  {storyteller_name} {term.DIM}+0 pts{term.RESET} (Too obvious or too obscure)")
+            print(f"  {storyteller_name} {term.DIM}+0 pts{term.RESET} (Too obvious or unrelated)")
+    print()
+
+    # Show correct guess bonus
+    print(f"{term.BOLD}Correct Guess Bonus:{term.RESET}")
+    correct_guessers = []
+    if game.state.storyteller_situation:
+        for voter_idx, voted_situation in game.state.votes.items():
+            if voted_situation == game.state.storyteller_situation:
+                guesser_name = f"P-{voter_idx}: {game.players[voter_idx].name}"
+                correct_guessers.append(guesser_name)
+
+    if correct_guessers:
+        for guesser in correct_guessers:
+            print(f"  {guesser} {term.FG_BRIGHT_CYAN}{term.BOLD}+1 pt{term.RESET} (Correct guess!)")
+    else:
+        print(f"  {term.DIM}No one guessed correctly{term.RESET}")
     print()
 
 

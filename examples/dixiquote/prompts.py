@@ -30,12 +30,13 @@ Round Structure:
 5. Players vote for the situation they think matches the quote (cannot vote for their own)
 
 Scoring:
-- Situation cards score 2 points for some-but-not-all votes
-- Situation cards score 1 point for zero votes
-- Situation cards score 0 points for all votes (too obvious)
-- Storyteller scores 3 points if at least 2 different cards get votes and no card gets all votes
+- Situation cards score 1 point for some-but-not-all votes
+- Situation cards score 0 points for zero votes
+- Situation cards score -1 point for all votes (too obvious - penalty)
+- Players who correctly guess the Storyteller's card earn +1 bonus point
+- Storyteller scores 1 point if at least 2 different cards get votes, including their own card
 
-The game rewards ambiguity and penalizes being too obvious or too obscure.
+The game rewards interpretable clues and penalizes being too obvious or totally unrelated.
 """.strip()
 
 
@@ -119,23 +120,33 @@ Your chosen situation:
 
 {history_text}
 
-Task: Give a poetic, quote-like clue that frames or interprets this situation.
+Task: Give a poetic, quote-like clue that captures the emotional experience of this situation.
+
+IMPORTANT: Your quote should NOT be a paraphrase or restatement of the situation text. Instead, create a quote that expresses what someone experiencing this situation might say, think, or feel - like a cry, prayer, realization, or emotional outburst.
 
 Your quote should:
 - Be a single line or sentence fragment
-- Sound like it could appear in a book, film, or poem
-- Express a way of remembering, framing, or interpreting the situation
-- Be evocative but not too literal
+- Sound like a character's voice speaking from within the experience
+- Express raw emotion, longing, despair, hope, or realization
+- Be a subjective experience, NOT an objective description
+- Be poetic and evocative, capturing the mood rather than the details
 - Create multiple plausible readings
 
-Remember: If your clue is too obvious, your card will get all votes and you'll score 0.
-If it's too obscure, no cards will get votes and you'll also score poorly.
-Aim for interpretable ambiguity.
+Examples:
+- Situation: "During the coronation, the throne remains empty while the crowd waits."
+  Good quote: "Oh divine heavens above, send us a shepherd in this hour of silence."
+  Bad quote: "The empty throne waits for a new king."
+
+- Situation: "The shadow enters the room several seconds before the person does."
+  Good quote: "First comes the darkness that men carry in their hearts."
+  Bad quote: "The shade arrives before its master."
+
+Remember: To score, at least 2 cards must get votes including your own. If your clue is too obvious, all vote for you and you get -1 point. If it's totally unrelated, no one votes for you and you get 0 points.
 
 Output format (JSON only):
 {{
-  "quote": "Your poetic quote",
-  "reasoning": "Brief explanation of how this quote relates to your situation"
+  "quote": "Your poetic quote expressing the emotional experience",
+  "reasoning": "Brief explanation of the emotional connection"
 }}
 """.strip()
 
@@ -186,7 +197,8 @@ Strategy tips:
 - Consider that other players will also be submitting cards
 - Your card should be a reasonable match but not the only possible match
 
-Remember: You score 2 points if you get some votes, 1 point for zero votes, and 0 points if you get all votes.
+Remember: You score 1 point if you get some votes, 0 points for zero votes, and -1 point if you get all votes.
+You also earn +1 bonus point if you correctly vote for the Storyteller's card.
 
 Output format (JSON only):
 {{
@@ -214,12 +226,11 @@ class VotePromptBuilder(PromptBuilder["DixiQuoteGame"]):
         # Get the quote
         quote = game.state.storyteller_quote or ""
 
-        # Get all submitted situations (shuffled)
+        # Get all submitted situations (shuffled), then remove player's own submission
         all_situations = game.state.get_all_submitted_situations()
-        situations_text = "\n".join([f"{i + 1}. {situation}" for i, situation in enumerate(all_situations)])
-
-        # Get which one was player's submission (if any)
         player_submission = game.state.submitted_situations.get(player.player_idx, None)
+        votable_situations = [s for s in all_situations if s != player_submission]
+        situations_text = "\n".join([f"{i + 1}. {situation}" for i, situation in enumerate(votable_situations)])
 
         return f"""
 {rules}
@@ -227,15 +238,17 @@ class VotePromptBuilder(PromptBuilder["DixiQuoteGame"]):
 The Storyteller's quote:
 "{quote}"
 
-All submitted situations (including the Storyteller's):
+Available situations to vote for:
 {situations_text}
+
+Note: Your own submission has been removed from the list as you cannot vote for yourself.
 
 Task: Vote for the situation you believe is the Storyteller's original card.
 
 Strategy tips:
 - Look for the situation that best matches the quote's theme, mood, or interpretation
 - Consider which situation the quote most naturally frames
-- Remember you cannot vote for your own submission{f' (which was: "{player_submission}")' if player_submission else ''}
+- You earn +1 bonus point if you correctly guess the Storyteller's card
 
 Output format (JSON only):
 {{

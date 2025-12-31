@@ -46,12 +46,15 @@ Each round consists of five phases:
 ### Scoring
 
 **For Situation Cards:**
-- **2 points** if the card receives some but not all votes
-- **1 point** if the card receives zero votes
-- **0 points** if the card receives all votes (too obvious)
+- **1 point** if the card receives some but not all votes
+- **0 points** if the card receives zero votes
+- **-1 point** if the card receives all votes (too obvious - penalty)
+
+**For Voting:**
+- **+1 bonus point** for each player who correctly votes for the Storyteller's card
 
 **For the Storyteller:**
-- **3 points** if at least two different cards receive votes AND no single card receives all votes
+- **1 point** if at least two different cards receive votes, including the Storyteller's own card
 - **0 points** otherwise
 
 ### End of Round
@@ -148,9 +151,9 @@ Default settings in `config.py`:
 
 DixiQuote rewards players who understand how others interpret language:
 
-- **Overly literal clues** tend to collapse voting and score poorly
-- **Too obscure clues** result in scattered votes with no clear winner
-- **The most successful quotes** create multiple plausible readings
+- **Overly literal clues** result in all votes going to one card, causing that card to lose a point
+- **Too obscure clues** result in zero points for everyone
+- **The most successful quotes** create multiple plausible readings, earning points for the storyteller and several situation cards
 
 The game is about the distance between what happens and how it is remembered.
 
@@ -194,10 +197,11 @@ dixiquote/
 - Sword situation → 0 votes
 
 **Scoring:**
-- Dragon card scores **2 points**
-- Throne card scores **2 points**
-- Sword card scores **1 point**
-- Storyteller scores **3 points**
+- Dragon card scores **1 point** (2 votes)
+- Throne card scores **1 point** (1 vote)
+- Sword card scores **0 points** (0 votes)
+- Players who voted for Dragon card earn **+1 bonus point** for correct guess
+- Storyteller scores **1 point** (at least 2 cards voted, including their own)
 
 ---
 
