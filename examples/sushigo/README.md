@@ -137,8 +137,6 @@ Sushi Go! is a card drafting game for 2-5 players. Players simultaneously choose
 ```bash
 # Set your API key
 export OPENROUTER_API_KEY="your-key-here"
-# or
-export OPENAI_API_KEY="your-key-here"
 
 # Run the game (default 4 players)
 python examples/sushigo/main.py

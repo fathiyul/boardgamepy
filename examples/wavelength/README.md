@@ -108,8 +108,6 @@ Wavelength is a social guessing game where players work together to read each ot
 ```bash
 # Set your API key
 export OPENROUTER_API_KEY="your-key-here"
-# or
-export OPENAI_API_KEY="your-key-here"
 
 # Run the game
 python examples/wavelength/main.py

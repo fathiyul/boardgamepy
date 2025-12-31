@@ -33,8 +33,7 @@ cp .env.example .env
 nano .env  # or use your favorite editor
 ```
 
-You need both:
-- `OPENAI_API_KEY` - Your OpenAI API key
+You need:
 - `OPENROUTER_API_KEY` - Your OpenRouter API key
 
 ### 2. Run the game

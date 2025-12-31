@@ -25,20 +25,26 @@ MONGO_URI=mongodb://localhost:27017
 MONGO_DB_NAME=boardgamepy_logs
 
 # Logging Configuration
-ENABLE_LOGGING=true
+ENABLE_LOGGING=false
 LOG_LEVEL=INFO
 
-# LLM Model Defaults
-OPENAI_MODEL=gpt-4o-mini
-OPENROUTER_MODEL=google/gemini-2.5-flash
+# OpenRouter API Key (required)
+OPENROUTER_API_KEY=your-openrouter-api-key-here
 
-# API Keys
-OPENAI_API_KEY=your-key-here
-OPENROUTER_API_KEY=your-key-here
+# LLM Model Configuration
+# DEFAULT_MODEL is used for all players unless overridden per-player
+DEFAULT_MODEL=google/gemini-2.5-flash
 
-# LangSmith Tracing (Optional)
+# Per-player model overrides (optional)
+# If not set, uses DEFAULT_MODEL
+# MODEL_PLAYER_1=google/gemini-2.5-flash
+# MODEL_PLAYER_2=anthropic/claude-sonnet-4.5
+# MODEL_PLAYER_3=openai/gpt-4o-mini
+# MODEL_PLAYER_4=x-ai/grok-4.1-fast
+
+# LangSmith Tracing
 LANGCHAIN_TRACING_V2=false
-LANGCHAIN_API_KEY=your-langsmith-key-here
+LANGCHAIN_API_KEY=your-langsmith-api-key-here
 LANGCHAIN_PROJECT=boardgamepy
 LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
 ```

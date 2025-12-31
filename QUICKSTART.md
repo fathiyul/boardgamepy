@@ -44,20 +44,33 @@ python view_logs.py export Coup 1000
 Edit `.env` in project root:
 
 ```env
-# Enable/disable logging
-ENABLE_LOGGING=true
-
-# MongoDB connection
+# MongoDB Configuration
 MONGO_URI=mongodb://localhost:27017
 MONGO_DB_NAME=boardgamepy_logs
 
-# AI model defaults (used by all games)
-OPENAI_MODEL=gpt-4o-mini
-OPENROUTER_MODEL=google/gemini-2.5-flash
+# Logging Configuration
+ENABLE_LOGGING=false
+LOG_LEVEL=INFO
 
-# Your API keys
-OPENAI_API_KEY=sk-...
-OPENROUTER_API_KEY=sk-or-v1-...
+# OpenRouter API Key (required)
+OPENROUTER_API_KEY=your-openrouter-api-key-here
+
+# LLM Model Configuration
+# DEFAULT_MODEL is used for all players unless overridden per-player
+DEFAULT_MODEL=google/gemini-2.5-flash
+
+# Per-player model overrides (optional)
+# If not set, uses DEFAULT_MODEL
+# MODEL_PLAYER_1=google/gemini-2.5-flash
+# MODEL_PLAYER_2=anthropic/claude-sonnet-4.5
+# MODEL_PLAYER_3=openai/gpt-4o-mini
+# MODEL_PLAYER_4=x-ai/grok-4.1-fast
+
+# LangSmith Tracing
+LANGCHAIN_TRACING_V2=false
+LANGCHAIN_API_KEY=your-langsmith-api-key-here
+LANGCHAIN_PROJECT=boardgamepy
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
 ```
 
 ## 🗄️ MongoDB Setup

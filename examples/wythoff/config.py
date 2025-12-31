@@ -12,7 +12,6 @@ class Config:
     def __init__(self):
         # Load .env file
         load_dotenv()
-        self.OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         self.OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
         # Default pile sizes (8, 13) is a P-position (losing position)
@@ -20,9 +19,9 @@ class Config:
         self.pile_a = 8
         self.pile_b = 13
 
-        if not self.OPENAI_API_KEY and not self.OPENROUTER_API_KEY:
+        if not self.OPENROUTER_API_KEY:
             raise ValueError(
-                "OPENAI_API_KEY or OPENROUTER_API_KEY is missing in .env file or environment variables."
+                "OPENROUTER_API_KEY is missing in .env file or environment variables."
             )
 
 

@@ -97,8 +97,6 @@ Love Letter is a game of risk, deduction, and luck for 2-4 players. Players atte
 ```bash
 # Set your API key
 export OPENROUTER_API_KEY="your-key-here"
-# or
-export OPENAI_API_KEY="your-key-here"
 
 # Run the game
 python examples/loveletter/main.py

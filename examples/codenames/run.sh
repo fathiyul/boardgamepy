@@ -11,7 +11,6 @@ if [ ! -f .env ]; then
     echo "cp .env.example .env"
     echo ""
     echo "Then edit .env and add your keys:"
-    echo "  OPENAI_API_KEY=your_key_here"
     echo "  OPENROUTER_API_KEY=your_key_here"
     echo ""
     exit 1
