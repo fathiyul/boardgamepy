@@ -26,7 +26,9 @@ export default function HomePage() {
             </div>
             <p>{game.description}</p>
             <p style={{ fontSize: 12, color: '#475569' }}>
-              {game.min_players}-{game.max_players} players
+              {game.min_players === game.max_players
+                ? `${game.min_players} players`
+                : `${game.min_players}-${game.max_players} players`}
             </p>
           </Link>
         ))}
