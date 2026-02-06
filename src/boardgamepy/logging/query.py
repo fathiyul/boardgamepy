@@ -3,7 +3,14 @@
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 
-from .mongodb_client import MongoDBClient
+try:  # Optional dependency
+    from .mongodb_client import MongoDBClient
+except Exception:  # ImportError or missing pymongo
+    class MongoDBClient:  # type: ignore
+        def __init__(self, *_, **__):
+            raise ImportError(
+                "pymongo is required for MongoDB query helpers. Install with pip install pymongo or disable logging."
+            )
 from .config import LoggingConfig
 
 

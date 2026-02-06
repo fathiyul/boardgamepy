@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 import random
+import copy
 from boardgamepy import Game, GameState, Board, Player, GameHistory
 from boardgamepy.protocols import ViewContext
 from actions import StrategyChooseAction
@@ -66,6 +67,10 @@ class StrategyRPSState(GameState):
     # Current round's effect mapping (randomized each round)
     # Maps choice -> (win_points, lose_effect, lose_type)
     effect_mapping: dict[str, dict] = field(default_factory=dict)
+
+    # Last round's effect mapping (for UI display)
+    last_effect_mapping: dict[str, dict] = field(default_factory=dict)
+
 
     def is_terminal(self) -> bool:
         """Game ends when someone reaches 10 points or dies."""

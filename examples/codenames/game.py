@@ -3,9 +3,9 @@
 from typing import TYPE_CHECKING
 
 from boardgamepy import Game, GameHistory, Player
-from board import CodenamesBoard
-from state import CodenamesState, Team
-from actions import ClueAction, GuessAction, PassAction
+from .board import CodenamesBoard
+from .state import CodenamesState, Team
+from .actions import ClueAction, GuessAction, PassAction
 
 if TYPE_CHECKING:
     pass

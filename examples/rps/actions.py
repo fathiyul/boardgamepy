@@ -165,6 +165,10 @@ class StrategyChooseAction(Action["StrategyRPSGame"]):
         p1_choice = state.player1_choice
         p2_choice = state.player2_choice
 
+        # Save this round's effects for UI before they change
+        import copy
+        state.last_effect_mapping = copy.deepcopy(state.effect_mapping)
+
         # Determine winner
         if p1_choice == p2_choice:
             # Tie - no effects

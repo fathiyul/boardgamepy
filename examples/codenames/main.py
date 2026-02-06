@@ -7,11 +7,11 @@ from pathlib import Path
 from boardgamepy import GameRunner
 from boardgamepy.ai import LLMAgent
 from boardgamepy.logging import LoggedLLMAgent
-from game import CodenamesGame
-from data import load_codenames
-from prompts import SpymasterPromptBuilder, OperativesPromptBuilder
-from actions import ClueAction, GuessAction, PassAction
-import ui
+from .game import CodenamesGame
+from .data import load_codenames
+from .prompts import SpymasterPromptBuilder, OperativesPromptBuilder
+from .actions import ClueAction, GuessAction, PassAction
+from . import ui
 
 
 class CodenamesRunner(GameRunner):

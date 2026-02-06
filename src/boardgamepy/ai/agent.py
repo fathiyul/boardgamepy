@@ -1,8 +1,12 @@
 """AI agent implementations."""
 
-from langchain_openai import ChatOpenAI
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from pydantic import BaseModel
+
+try:
+    from langchain_openai import ChatOpenAI
+except ImportError:  # Defer hard dependency to runtime
+    ChatOpenAI = None  # type: ignore
 
 if TYPE_CHECKING:
     from boardgamepy.core.game import Game
@@ -36,6 +40,10 @@ class LLMAgent:
             prompt_builder: Prompt builder for constructing messages
             output_schema: Pydantic model for structured output
         """
+        if ChatOpenAI is None:
+            raise ImportError(
+                "langchain-openai is required to use LLMAgent; install with pip install langchain-openai"
+            )
         self.llm = llm
         self.prompt_builder = prompt_builder
         self.output_schema = output_schema

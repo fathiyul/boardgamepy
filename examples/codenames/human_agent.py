@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 from boardgamepy.core.player import Player
 from boardgamepy.protocols import SimpleViewContext
-from actions import ClueAction, GuessAction, PassAction
+from .actions import ClueAction, GuessAction, PassAction
 
 if TYPE_CHECKING:
     from game import CodenamesGame
@@ -38,7 +38,7 @@ class CodenamesHumanAgent:
 
     def _get_clue_from_human(self, game: "CodenamesGame", player: Player):
         """Get clue from human spymaster."""
-        from actions import ClueOutput
+        from .actions import ClueOutput
 
         print()  # Blank line for spacing
 
@@ -71,7 +71,7 @@ class CodenamesHumanAgent:
 
     def _get_guess_from_human(self, game: "CodenamesGame", player: Player):
         """Get guess or pass from human operatives."""
-        from actions import GuessOutput
+        from .actions import GuessOutput
 
         print()  # Blank line for spacing
         print(f"Guesses remaining: {game.state.guesses_remaining}")

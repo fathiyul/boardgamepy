@@ -5,7 +5,14 @@ from typing import Any, Dict, Optional
 import uuid
 import logging
 
-from .mongodb_client import MongoDBClient
+try:  # Optional dependency
+    from .mongodb_client import MongoDBClient
+except Exception:  # ImportError or missing pymongo
+    class MongoDBClient:  # type: ignore
+        def __init__(self, *_, **__):
+            raise ImportError(
+                "pymongo is required for MongoDB logging. Install with pip install pymongo or disable logging."
+            )
 from .config import LoggingConfig
 from .serializers import StateSerializer
 

@@ -6,8 +6,8 @@ from boardgamepy.ai import PromptBuilder
 from boardgamepy.protocols import SimpleViewContext
 
 if TYPE_CHECKING:
-    from game import CodenamesGame
-    from state import Team
+    from .game import CodenamesGame
+    from .state import Team
     from boardgamepy.core.player import Player
 
 

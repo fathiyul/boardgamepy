@@ -6,12 +6,12 @@ from pathlib import Path
 from langchain_openai import ChatOpenAI
 from boardgamepy.ai import LLMAgent
 from boardgamepy.logging import LoggedLLMAgent, LoggingConfig, GameLogger
-from game import CodenamesGame
-from data import load_codenames
-from prompts import SpymasterPromptBuilder, OperativesPromptBuilder
-from actions import ClueAction, GuessAction, PassAction
-from human_agent import CodenamesHumanAgent
-import ui
+from .game import CodenamesGame
+from .data import load_codenames
+from .prompts import SpymasterPromptBuilder, OperativesPromptBuilder
+from .actions import ClueAction, GuessAction, PassAction
+from .human_agent import CodenamesHumanAgent
+from . import ui
 import os
 import copy
 
