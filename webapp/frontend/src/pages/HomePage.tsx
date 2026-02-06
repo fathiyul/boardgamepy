@@ -12,9 +12,8 @@ export default function HomePage() {
   const { data, isLoading, error } = useQuery({ queryKey: ['games'], queryFn: fetchGames });
 
   return (
-    <div className="container">
+      <div className="container">
       <h1>BoardGamePy Web</h1>
-      <p>Play the example games with a web UI. Choose a game to start a session.</p>
       {isLoading && <p>Loading games…</p>}
       {error && <p>Failed to load games.</p>}
       <div className="card-grid">
@@ -22,7 +21,7 @@ export default function HomePage() {
           <Link to={`/${game.slug}`} key={game.slug} className="card">
             <div className="flex" style={{ justifyContent: 'space-between' }}>
               <h3>{game.title}</h3>
-              {game.playable ? <span className="badge">Playable</span> : <span className="badge">Soon</span>}
+              {!game.playable && <span className="badge">Soon</span>}
             </div>
             <p>{game.description}</p>
             <p style={{ fontSize: 12, color: '#475569' }}>
