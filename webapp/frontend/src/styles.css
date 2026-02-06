@@ -9,6 +9,8 @@
 body {
   margin: 0;
   background:
+    repeating-linear-gradient(0deg, rgba(15, 23, 42, 0.035) 0, rgba(15, 23, 42, 0.035) 1px, transparent 1px, transparent 2px),
+    repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.03) 0, rgba(15, 23, 42, 0.03) 1px, transparent 1px, transparent 2px),
     radial-gradient(1200px 600px at 10% -10%, #d1fae5 0%, transparent 60%),
     radial-gradient(900px 500px at 110% 10%, #fde68a 0%, transparent 55%),
     radial-gradient(800px 500px at 40% 120%, #bfdbfe 0%, transparent 55%),

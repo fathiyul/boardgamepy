@@ -13,7 +13,7 @@ export default function HomePage() {
 
   return (
       <div className="container">
-      <h1>BoardGamePy Web</h1>
+      <h1>Vektor Spiele</h1>
       {isLoading && <p>Loading games…</p>}
       {error && <p>Failed to load games.</p>}
       <div className="card-grid">
