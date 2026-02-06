@@ -29,3 +29,10 @@ class Snapshot(SQLModel, table=True):
     state: dict = Field(sa_column=Column(JSON), default={})
     board_view: str | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+
+
+class RateLimit(SQLModel, table=True):
+    ip: str = Field(primary_key=True, index=True)
+    window_start: datetime = Field(index=True)
+    count: int = Field(default=0)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

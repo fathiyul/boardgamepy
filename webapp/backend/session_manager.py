@@ -153,8 +153,15 @@ class SessionManager:
                 break
 
             # AI turn
-            ai_action = await self._get_ai_action(adapter, game, current)
-            result = await self.apply_action(db, session_id, idx, ai_action[0], ai_action[1])
+            try:
+                ai_action = await self._get_ai_action(adapter, game, current)
+                result = await self.apply_action(db, session_id, idx, ai_action[0], ai_action[1])
+            except Exception:
+                fallback = self._fallback_action(adapter, game, current)
+                if fallback is None:
+                    break
+                result = await self.apply_action(db, session_id, idx, fallback[0], fallback[1])
+
             await send_event(
                 {
                     "type": "action_applied",
@@ -180,12 +187,16 @@ class SessionManager:
         import json
         import re
         from pydantic import BaseModel, ValidationError
+        import asyncio
 
         # If agent has get_action (like LoggedLLMAgent)
         if hasattr(player, "agent") and player.agent is not None:
             if hasattr(player.agent, "get_action"):
                 try:
-                    llm_output = await _maybe_async(player.agent.get_action, game, player)
+                    llm_output = await asyncio.wait_for(
+                        _maybe_async(player.agent.get_action, game, player),
+                        timeout=30,
+                    )
                     if isinstance(llm_output, BaseModel):
                         data = llm_output.model_dump()
                     elif isinstance(llm_output, dict):
@@ -202,13 +213,51 @@ class SessionManager:
                     if action_name == "guess" and data.get("action") == "pass":
                         action_name = "pass"
                     return action_name, {k: v for k, v in data.items() if k not in {"reasoning", "action"}}
-                except (ValidationError, json.JSONDecodeError, ValueError):
+                except (asyncio.TimeoutError, ValidationError, json.JSONDecodeError, ValueError):
                     pass
 
         # Fallback random for RPS
         choices = ["rock", "paper", "scissors"]
         action_name = adapter.valid_actions_for_player(game, player)[0]["name"]
         return action_name, {"choice": random.choice(choices)}
+
+    def _fallback_action(self, adapter: GameAdapter, game, player):
+        import random
+
+        actions = adapter.valid_actions_for_player(game, player)
+        if not actions:
+            return None
+
+        # Prefer pass if available
+        for action in actions:
+            if action["name"] == "pass":
+                return "pass", {}
+
+        # Guess: pick a random hidden codename if provided
+        for action in actions:
+            if action["name"] == "guess":
+                enum = action.get("schema", {}).get("properties", {}).get("codename", {}).get("enum", [])
+                if enum:
+                    return "guess", {"codename": random.choice(enum)}
+
+        # Clue: pick a safe clue that isn't on the board
+        for action in actions:
+            if action["name"] == "clue":
+                hidden = {c.code.lower() for c in getattr(game.board, "cards", {}).values() if c.state == "Hidden"}
+                for clue in ["alpha", "beta", "gamma", "delta", "omega", "aurora", "vector"]:
+                    if clue.lower() not in hidden:
+                        return "clue", {"clue": clue, "count": 1}
+
+        # Generic: if schema provides an enum for a single property, pick random
+        for action in actions:
+            schema = action.get("schema", {})
+            props = schema.get("properties", {}) if isinstance(schema, dict) else {}
+            for key, prop in props.items():
+                enum = prop.get("enum") if isinstance(prop, dict) else None
+                if enum:
+                    return action["name"], {key: random.choice(enum)}
+
+        return None
 
     def attach_socket(self, session_id: str, ws: WebSocket):
         if session_id not in self.sessions:

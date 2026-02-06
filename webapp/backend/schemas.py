@@ -13,6 +13,7 @@ class SessionStateResponse(BaseModel):
     session_id: str
     game_slug: str
     players: list[dict]
+    config: dict | None = None
     state: dict
     board_view: str | None = None
     board_cards: list[dict] | None = None

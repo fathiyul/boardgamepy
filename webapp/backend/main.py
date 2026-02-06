@@ -6,7 +6,7 @@ from functools import partial
 from typing import List
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -20,7 +20,7 @@ if str(SRC) not in sys.path:
     sys.path.append(str(SRC))
 
 from .db import get_db, init_db, AsyncSessionLocal
-from .models import Session as SessionModel, Snapshot
+from .models import Session as SessionModel, Snapshot, RateLimit
 from .registry import get_games_meta
 from .schemas import ActionRequest, ActionResponse, CreateSessionRequest, SessionStateResponse
 from .session_manager import session_manager
@@ -29,11 +29,11 @@ load_dotenv()
 
 app = FastAPI(title="BoardGamePy Web API", version="0.1")
 
-origins = os.getenv("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
+origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -54,10 +54,61 @@ async def list_games():
     return [meta.__dict__ for meta in get_games_meta()]
 
 
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+async def _enforce_rate_limit(db: AsyncSession, ip: str, limit: int = 30) -> str | None:
+    from datetime import datetime, timedelta
+    from sqlmodel import select
+
+    now = datetime.utcnow()
+    result = await db.exec(select(RateLimit).where(RateLimit.ip == ip))
+    row = result.first()
+    if row is None:
+        row = RateLimit(ip=ip, window_start=now, count=1)
+        db.add(row)
+        await db.commit()
+        return None
+
+    window_end = row.window_start + timedelta(hours=1)
+    if now >= window_end:
+        row.window_start = now
+        row.count = 1
+        row.updated_at = now
+        db.add(row)
+        await db.commit()
+        return None
+
+    if row.count >= limit:
+        return window_end.isoformat() + "Z"
+
+    row.count += 1
+    row.updated_at = now
+    db.add(row)
+    await db.commit()
+    return None
+
+
 @app.post("/games/{slug}/sessions", response_model=SessionStateResponse)
-async def create_session(slug: str, req: CreateSessionRequest, db: AsyncSession = Depends(get_db)):
+async def create_session(slug: str, req: CreateSessionRequest, request: Request, db: AsyncSession = Depends(get_db)):
     if slug not in session_manager.registry:
         raise HTTPException(status_code=404, detail="Unknown game")
+
+    ip = _client_ip(request)
+    reset_at = await _enforce_rate_limit(db, ip, limit=30)
+    if reset_at:
+        return JSONResponse(
+            status_code=429,
+            content={
+                "detail": "rate_limit",
+                "reset_at": reset_at,
+                "limit": 30,
+            },
+        )
 
     human_seats = set(req.human_seats or [])
     config = req.config or {}
@@ -83,6 +134,7 @@ async def create_session(slug: str, req: CreateSessionRequest, db: AsyncSession 
         session_id=active.session_id,
         game_slug=slug,
         players=session_manager._players_meta(active.game, human_seats),
+        config=config,
         state=data.get("state", {}),
         board_view=data.get("board_view"),
         board_cards=data.get("board_cards"),
@@ -108,6 +160,7 @@ async def get_session_state(slug: str, session_id: str, db: AsyncSession = Depen
             session_id=session_id,
             game_slug=slug,
             players=session_row.players,
+            config=session_row.config,
             state=data.get("state", {}),
             board_view=data.get("board_view"),
             board_cards=data.get("board_cards"),
@@ -130,6 +183,7 @@ async def get_session_state(slug: str, session_id: str, db: AsyncSession = Depen
         session_id=session_id,
         game_slug=slug,
         players=session_row.players,
+        config=session_row.config,
         state=state,
         board_view=board_view,
         board_cards=None,

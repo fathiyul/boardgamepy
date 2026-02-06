@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import api from "../api/client";
@@ -16,6 +16,7 @@ export default function GamePage() {
   const [humanSeats, setHumanSeats] = useState("0");
   const [codenamesSeat, setCodenamesSeat] = useState<number>(1);
   const [teamModelMap, setTeamModelMap] = useState<Record<string, string>>({});
+  const [toast, setToast] = useState<string | null>(null);
   const codenamesSeats = [
     { idx: 0, team: "Red", role: "Spymaster" },
     { idx: 1, team: "Red", role: "Operatives" },
@@ -34,6 +35,40 @@ export default function GamePage() {
 
   const [opponentModel, setOpponentModel] = useState("random");
 
+  useEffect(() => {
+    const saved = localStorage.getItem("rps_settings");
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (data?.opponentModel) setOpponentModel(data.opponentModel);
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("rps_settings", JSON.stringify({ opponentModel }));
+  }, [opponentModel]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("codenames_settings");
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (typeof data?.codenamesSeat === "number")
+          setCodenamesSeat(data.codenamesSeat);
+        if (data?.teamModelMap && typeof data.teamModelMap === "object")
+          setTeamModelMap(data.teamModelMap);
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "codenames_settings",
+      JSON.stringify({ codenamesSeat, teamModelMap }),
+    );
+  }, [codenamesSeat, teamModelMap]);
+
   const createSession = useMutation({
     mutationFn: async () => {
       if (!meta) throw new Error("Game not found");
@@ -49,19 +84,32 @@ export default function GamePage() {
           meta.slug === "codenames"
             ? [codenamesSeat]
             : humanParsed.length
-            ? humanParsed
-            : [0],
+              ? humanParsed
+              : [0],
         config:
           meta.slug === "rps"
             ? { opponent_model: opponentModel }
             : meta.slug === "codenames"
-            ? { team_model_map: teamModelMap }
-            : undefined,
+              ? { team_model_map: teamModelMap }
+              : undefined,
       });
       return res.data;
     },
     onSuccess: (session) => {
       navigate(`/${session.game_slug}/${session.session_id}`);
+    },
+    onError: (err: any) => {
+      const status = err?.response?.status;
+      if (status === 429) {
+        const resetAt = err?.response?.data?.reset_at;
+        const dt = resetAt ? new Date(resetAt) : null;
+        const time =
+          dt && !Number.isNaN(dt.getTime())
+            ? dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+            : "later";
+        setToast(`Rate limit reached. Your limit will be renewed at ${time}.`);
+        setTimeout(() => setToast(null), 6000);
+      }
     },
   });
 
@@ -75,6 +123,24 @@ export default function GamePage() {
 
   return (
     <div className="container">
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            right: 24,
+            bottom: 24,
+            background: "#0b1020",
+            color: "#f8fafc",
+            padding: "12px 14px",
+            borderRadius: 12,
+            boxShadow: "0 12px 24px rgba(12, 17, 34, 0.25)",
+            zIndex: 50,
+            maxWidth: 320,
+          }}
+        >
+          {toast}
+        </div>
+      )}
       <button className="button secondary" onClick={() => navigate("/")}>
         🏠 Home
       </button>
@@ -104,15 +170,14 @@ export default function GamePage() {
               value={opponentModel}
               onChange={(e) => setOpponentModel(e.target.value)}
             >
-              <option value="random">Random (local)</option>
-              <option value="google/gemini-3-flash-preview">
-                Gemini 3 Flash
+              <option value="random">Random (no AI)</option>
+              <option value="openai/gpt-4.1-nano">GPT 4.1 Nano</option>
+              <option value="google/gemini-2.5-flash-lite">
+                Gemini 2.5 Flash Lite
               </option>
-              <option value="anthropic/claude-haiku-4.5">
-                Claude 4.5 Haiku
+              <option value="qwen/qwen3-next-80b-a3b-instruct">
+                Qwen 3 Next 80B A3B
               </option>
-              <option value="openai/gpt-4.1-mini">GPT 4.1 Mini</option>
-              <option value="x-ai/grok-4.1-fast">Grok 4.1 Fast</option>
             </select>
           </label>
           <div className="flex" style={{ alignItems: "center", gap: 12 }}>
@@ -141,13 +206,21 @@ export default function GamePage() {
           <ul style={{ margin: 0, paddingLeft: 18, color: "#475569" }}>
             <li>Teams: Red vs Blue with Spymaster + Operatives.</li>
             <li>Red goes first. First team to reveal all agents wins.</li>
-            <li>Spymaster gives a one-word clue + number; Operatives guess that many cards.</li>
-            <li>Assassin revealed or clue matches a codename = instant loss.</li>
+            <li>
+              Spymaster gives a one-word clue + number; Operatives guess that
+              many cards.
+            </li>
+            <li>
+              Assassin revealed or clue matches a codename = instant loss.
+            </li>
           </ul>
           <div className="flex" style={{ gap: 12, flexWrap: "wrap" }}>
             <label style={{ display: "grid", gap: 6 }}>
               Your seat
-              <select value={codenamesSeat} onChange={(e) => setCodenamesSeat(Number(e.target.value))}>
+              <select
+                value={codenamesSeat}
+                onChange={(e) => setCodenamesSeat(Number(e.target.value))}
+              >
                 {codenamesSeats.map((seat) => (
                   <option key={seat.idx} value={seat.idx}>
                     {seat.team} {seat.role}
@@ -157,25 +230,39 @@ export default function GamePage() {
             </label>
           </div>
           <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ color: "#475569", fontSize: 13 }}>Models by team/role</div>
-            {codenamesSeats.filter((seat) => seat.idx !== codenamesSeat).map((seat) => (
-              <label key={seat.idx} style={{ display: "grid", gap: 4 }}>
-                {seat.team} {seat.role} model
-                <select
-                  value={teamModelMap[seat.idx] || "google/gemini-3-flash-preview"}
-                  onChange={(e) =>
-                    setTeamModelMap((prev) => ({ ...prev, [seat.idx]: e.target.value }))
-                  }
-                >
-                  <option value="google/gemini-3-flash-preview">Gemini 3 Flash</option>
-                  <option value="anthropic/claude-haiku-4.5">Claude 4.5 Haiku</option>
-                  <option value="openai/gpt-4.1-mini">GPT 4.1 Mini</option>
-                  <option value="x-ai/grok-4.1-fast">Grok 4.1 Fast</option>
-                </select>
-              </label>
-            ))}
+            <div style={{ color: "#475569", fontSize: 13 }}>
+              Models by team/role
+            </div>
+            {codenamesSeats
+              .filter((seat) => seat.idx !== codenamesSeat)
+              .map((seat) => (
+                <label key={seat.idx} style={{ display: "grid", gap: 4 }}>
+                  {seat.team} {seat.role} model
+                  <select
+                    value={
+                      teamModelMap[seat.idx] || "google/gemini-3-flash-preview"
+                    }
+                    onChange={(e) =>
+                      setTeamModelMap((prev) => ({
+                        ...prev,
+                        [seat.idx]: e.target.value,
+                      }))
+                    }
+                  >
+                    <option value="openai/gpt-4.1-nano">GPT 4.1 Nano</option>
+                    <option value="google/gemini-2.5-flash-lite">
+                      Gemini 2.5 Flash Lite
+                    </option>
+                    <option value="qwen/qwen3-next-80b-a3b-instruct">
+                      Qwen 3 Next 80B A3B
+                    </option>
+                  </select>
+                </label>
+              ))}
             <p style={{ color: "#475569", fontSize: 12 }}>
-              Note: Your chosen seat will ignore the model and use your own input (future UI). Currently all seats AI unless selected as human.
+              Note: Your chosen seat will ignore the model and use your own
+              input (future UI). Currently all seats AI unless selected as
+              human.
             </p>
           </div>
           <div className="flex" style={{ alignItems: "center", gap: 12 }}>

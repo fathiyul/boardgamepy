@@ -233,10 +233,10 @@ export default function SessionPage() {
 
   const playAgainMutation = useMutation({
     mutationFn: async () => {
-      const model = opponentModelFromName(sessionData?.players?.[1]?.name);
+      const config = sessionData?.config || { opponent_model: opponentModelFromName(sessionData?.players?.[1]?.name) };
       const res = await api.post(`/games/${game}/sessions`, {
         human_seats: [0],
-        config: { opponent_model: model },
+        config,
       });
       return res.data;
     },
@@ -263,8 +263,10 @@ export default function SessionPage() {
 
   const codenamesPlayAgainMutation = useMutation({
     mutationFn: async () => {
+      const config = sessionData?.config || undefined;
       const res = await api.post(`/games/${game}/sessions`, {
         human_seats: [humanPlayerIdx],
+        config,
       });
       return res.data;
     },
@@ -408,12 +410,28 @@ export default function SessionPage() {
           <div className="flex" style={{ gap: 12, alignItems: 'center' }}>
             <div>
               You: <strong>{state.state.last_player1_choice}</strong>{' '}
-              <span style={{ color: '#475569' }}>{formatOutcome(state.state.last_player1_choice, computeWinner(state.state.last_player1_choice, state.state.last_player2_choice) === 'Player 1', state.state.last_effect_mapping)}</span>
+              <span style={{ color: '#475569' }}>
+                {computeWinner(state.state.last_player1_choice, state.state.last_player2_choice) === 'Tie'
+                  ? ''
+                  : formatOutcome(
+                      state.state.last_player1_choice,
+                      computeWinner(state.state.last_player1_choice, state.state.last_player2_choice) === 'Player 1',
+                      state.state.last_effect_mapping
+                    )}
+              </span>
             </div>
             <div>
               {sessionData.players[1]?.name || 'Opponent'}:{' '}
               <strong>{state.state.last_player2_choice}</strong>{' '}
-              <span style={{ color: '#475569' }}>{formatOutcome(state.state.last_player2_choice, computeWinner(state.state.last_player1_choice, state.state.last_player2_choice) === 'Player 2', state.state.last_effect_mapping)}</span>
+              <span style={{ color: '#475569' }}>
+                {computeWinner(state.state.last_player1_choice, state.state.last_player2_choice) === 'Tie'
+                  ? ''
+                  : formatOutcome(
+                      state.state.last_player2_choice,
+                      computeWinner(state.state.last_player1_choice, state.state.last_player2_choice) === 'Player 2',
+                      state.state.last_effect_mapping
+                    )}
+              </span>
             </div>
             <div style={{ fontWeight: 700, color: computeWinner(state.state.last_player1_choice, state.state.last_player2_choice) === 'Player 1' ? '#16a34a' : computeWinner(state.state.last_player1_choice, state.state.last_player2_choice) === 'Player 2' ? '#16a34a' : '#475569' }}>
               {(() => {
