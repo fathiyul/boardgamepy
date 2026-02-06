@@ -14,6 +14,14 @@ export default function GamePage() {
   const navigate = useNavigate();
   const [numPlayers, setNumPlayers] = useState<number | "">("");
   const [humanSeats, setHumanSeats] = useState("0");
+  const [codenamesSeat, setCodenamesSeat] = useState<number>(1);
+  const [teamModelMap, setTeamModelMap] = useState<Record<string, string>>({});
+  const codenamesSeats = [
+    { idx: 0, team: "Red", role: "Spymaster" },
+    { idx: 1, team: "Red", role: "Operatives" },
+    { idx: 2, team: "Blue", role: "Spymaster" },
+    { idx: 3, team: "Blue", role: "Operatives" },
+  ];
 
   const { data: games } = useQuery({
     queryKey: ["games"],
@@ -37,9 +45,18 @@ export default function GamePage() {
         .filter((n) => !Number.isNaN(n));
       const res = await api.post(`/games/${meta.slug}/sessions`, {
         num_players: numPlayers || undefined,
-        human_seats: humanParsed.length ? humanParsed : [0],
+        human_seats:
+          meta.slug === "codenames"
+            ? [codenamesSeat]
+            : humanParsed.length
+            ? humanParsed
+            : [0],
         config:
-          meta.slug === "rps" ? { opponent_model: opponentModel } : undefined,
+          meta.slug === "rps"
+            ? { opponent_model: opponentModel }
+            : meta.slug === "codenames"
+            ? { team_model_map: teamModelMap }
+            : undefined,
       });
       return res.data;
     },
@@ -115,8 +132,71 @@ export default function GamePage() {
           )}
         </div>
       )}
+      {meta.slug === "codenames" && (
+        <div
+          className="card"
+          style={{ maxWidth: 720, display: "grid", gap: 12 }}
+        >
+          <h3>Rules (Codenames)</h3>
+          <ul style={{ margin: 0, paddingLeft: 18, color: "#475569" }}>
+            <li>Teams: Red vs Blue with Spymaster + Operatives.</li>
+            <li>Red goes first. First team to reveal all agents wins.</li>
+            <li>Spymaster gives a one-word clue + number; Operatives guess that many cards.</li>
+            <li>Assassin revealed or clue matches a codename = instant loss.</li>
+          </ul>
+          <div className="flex" style={{ gap: 12, flexWrap: "wrap" }}>
+            <label style={{ display: "grid", gap: 6 }}>
+              Your seat
+              <select value={codenamesSeat} onChange={(e) => setCodenamesSeat(Number(e.target.value))}>
+                {codenamesSeats.map((seat) => (
+                  <option key={seat.idx} value={seat.idx}>
+                    {seat.team} {seat.role}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ color: "#475569", fontSize: 13 }}>Models by team/role</div>
+            {codenamesSeats.filter((seat) => seat.idx !== codenamesSeat).map((seat) => (
+              <label key={seat.idx} style={{ display: "grid", gap: 4 }}>
+                {seat.team} {seat.role} model
+                <select
+                  value={teamModelMap[seat.idx] || "google/gemini-3-flash-preview"}
+                  onChange={(e) =>
+                    setTeamModelMap((prev) => ({ ...prev, [seat.idx]: e.target.value }))
+                  }
+                >
+                  <option value="google/gemini-3-flash-preview">Gemini 3 Flash</option>
+                  <option value="anthropic/claude-haiku-4.5">Claude 4.5 Haiku</option>
+                  <option value="openai/gpt-4.1-mini">GPT 4.1 Mini</option>
+                  <option value="x-ai/grok-4.1-fast">Grok 4.1 Fast</option>
+                </select>
+              </label>
+            ))}
+            <p style={{ color: "#475569", fontSize: 12 }}>
+              Note: Your chosen seat will ignore the model and use your own input (future UI). Currently all seats AI unless selected as human.
+            </p>
+          </div>
+          <div className="flex" style={{ alignItems: "center", gap: 12 }}>
+            <button
+              className="button"
+              onClick={() => createSession.mutate()}
+              disabled={createSession.isPending}
+            >
+              {createSession.isPending ? "Starting…" : "Start Match"}
+            </button>
+            <span style={{ color: "#475569", fontSize: 13 }}>4 players</span>
+          </div>
+          {createSession.error && (
+            <p style={{ color: "crimson" }}>
+              Failed: {(createSession.error as any).message}
+            </p>
+          )}
+        </div>
+      )}
       {!meta.playable && <p>This game is not yet playable in the web UI.</p>}
-      {meta.playable && meta.slug !== "rps" && (
+      {meta.playable && meta.slug !== "rps" && meta.slug !== "codenames" && (
         <div className="card" style={{ maxWidth: 520 }}>
           <h3>Start Session</h3>
           <p style={{ fontSize: 13, color: "#475569" }}>

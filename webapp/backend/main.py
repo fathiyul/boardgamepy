@@ -1,5 +1,6 @@
 import os
 import sys
+import asyncio
 from pathlib import Path
 from functools import partial
 from typing import List
@@ -18,7 +19,7 @@ if str(ROOT) not in sys.path:
 if str(SRC) not in sys.path:
     sys.path.append(str(SRC))
 
-from .db import get_db, init_db
+from .db import get_db, init_db, AsyncSessionLocal
 from .models import Session as SessionModel, Snapshot
 from .registry import get_games_meta
 from .schemas import ActionRequest, ActionResponse, CreateSessionRequest, SessionStateResponse
@@ -71,14 +72,21 @@ async def create_session(slug: str, req: CreateSessionRequest, db: AsyncSession 
     async def send_event(message):
         await session_manager.broadcast(active.session_id, message)
 
-    await session_manager.auto_run_ai(db, active.session_id, send_event)
+    async def run_ai_after(session_id: str):
+        async with AsyncSessionLocal() as session:
+            await session_manager.auto_run_ai(session, session_id, send_event)
 
+    asyncio.create_task(run_ai_after(active.session_id))
+
+    data = session_manager.sessions[active.session_id].adapter.serialize_state(active.game)
     payload = SessionStateResponse(
         session_id=active.session_id,
         game_slug=slug,
         players=session_manager._players_meta(active.game, human_seats),
-        state=session_manager.sessions[active.session_id].adapter.serialize_state(active.game)["state"],
-        board_view=session_manager.sessions[active.session_id].adapter.serialize_state(active.game)["board_view"],
+        state=data.get("state", {}),
+        board_view=data.get("board_view"),
+        board_cards=data.get("board_cards"),
+        history=data.get("history"),
         turn=active.turn_counter,
     )
     return payload
@@ -93,7 +101,21 @@ async def get_session_state(slug: str, session_id: str, db: AsyncSession = Depen
     if not session_row:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    # Latest snapshot
+    if session_id in session_manager.sessions:
+        active = session_manager.sessions[session_id]
+        data = active.adapter.serialize_state(active.game)
+        return SessionStateResponse(
+            session_id=session_id,
+            game_slug=slug,
+            players=session_row.players,
+            state=data.get("state", {}),
+            board_view=data.get("board_view"),
+            board_cards=data.get("board_cards"),
+            history=data.get("history"),
+            turn=active.turn_counter,
+        )
+
+    # Latest snapshot (fallback)
     from sqlmodel import select
 
     result = await db.exec(
@@ -110,6 +132,8 @@ async def get_session_state(slug: str, session_id: str, db: AsyncSession = Depen
         players=session_row.players,
         state=state,
         board_view=board_view,
+        board_cards=None,
+        history=None,
         turn=snap.turn if snap else None,
     )
 
@@ -167,7 +191,11 @@ async def submit_action(slug: str, session_id: str, req: ActionRequest, db: Asyn
     async def send_event(message):
         await session_manager.broadcast(session_id, message)
 
-    await session_manager.auto_run_ai(db, session_id, send_event)
+    async def run_ai_after(session_id: str):
+        async with AsyncSessionLocal() as session:
+            await session_manager.auto_run_ai(session, session_id, send_event)
+
+    asyncio.create_task(run_ai_after(session_id))
 
     return ActionResponse(
         turn=result["turn"],

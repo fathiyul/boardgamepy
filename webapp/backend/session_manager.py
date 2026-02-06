@@ -199,7 +199,9 @@ class SessionManager:
                         else:
                             raise ValueError("LLM output not JSON")
                     action_name = adapter.valid_actions_for_player(game, player)[0]["name"]
-                    return action_name, {k: v for k, v in data.items() if k != "reasoning"}
+                    if action_name == "guess" and data.get("action") == "pass":
+                        action_name = "pass"
+                    return action_name, {k: v for k, v in data.items() if k not in {"reasoning", "action"}}
                 except (ValidationError, json.JSONDecodeError, ValueError):
                     pass
 

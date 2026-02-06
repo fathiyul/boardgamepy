@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 from boardgamepy import Action
 
 if TYPE_CHECKING:
-    from game import CodenamesGame
-    from state import Team
+    from .game import CodenamesGame
+    from .state import Team
     from boardgamepy.core.player import Player
 
 
@@ -115,6 +115,9 @@ class GuessAction(Action["CodenamesGame"]):
         if game.state.guesses_remaining <= 0:
             return False
 
+        if not codename:
+            return False
+
         card = game.board.find_by_codename(codename)
         return card is not None and card.state == "Hidden"
 
@@ -124,6 +127,9 @@ class GuessAction(Action["CodenamesGame"]):
 
         Reveals the card, updates counts, checks win conditions, and may end turn.
         """
+        if not codename:
+            raise ValueError("Codename is required")
+
         # Find and reveal card
         card = game.board.find_by_codename(codename)
         if card is None:

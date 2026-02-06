@@ -5,7 +5,7 @@ import api from '../api/client';
 import { SessionEvent, SessionState, ActionSchema } from '../types';
 import { useSessionStore } from '../stores/useSessionStore';
 
-function StatCard({ title, value, highlight }: { title: string; value: string; highlight?: boolean }) {
+function StatCard({ title, value, highlight, valueColor }: { title: string; value: string; highlight?: boolean; valueColor?: string }) {
   return (
     <div
       className="card"
@@ -16,7 +16,7 @@ function StatCard({ title, value, highlight }: { title: string; value: string; h
       }}
     >
       <div style={{ fontSize: 12, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5 }}>{title}</div>
-      <div style={{ fontSize: 18, fontWeight: 700 }}>{value}</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: valueColor }}>{value}</div>
     </div>
   );
 }
@@ -73,11 +73,83 @@ function formatOutcome(choice: string, isWinner: boolean, mapping: Record<string
   return '';
 }
 
+function isGameOver(state: any) {
+  return Boolean(state?.game_over || state?.is_over);
+}
+
 function sessionWinnerLabel(state: any) {
-  if (!state?.game_over) return null;
+  const isOver = state?.game_over || state?.is_over;
+  if (!isOver) return null;
   if (state.winner === 'Player 1') return 'You win';
   if (state.winner === 'Player 2') return 'Opponent wins';
-  return 'Tie game';
+  if (state.winner) return `${state.winner} wins`;
+  return 'Game over';
+}
+
+function resultEmoji(cardType?: string, team?: string) {
+  if (cardType === 'Assassin') return '☠️';
+  if (cardType === 'Civilian') return '🫥';
+  if (team && cardType === team) return '❇️';
+  return '💥';
+}
+
+function teamColor(team?: string) {
+  if (team === 'Red') return '#dc2626';
+  if (team === 'Blue') return '#2563eb';
+  return '#0f172a';
+}
+
+function formatCodenamesHistoryEntry(entry: Record<string, any>) {
+  const round = entry.round ? `R${entry.round}: ` : '';
+  if (entry.type === 'clue') {
+    return (
+      <>
+        {round}
+        <span style={{ color: teamColor(entry.team), fontWeight: 700 }}>{entry.team}</span> Spymaster → {entry.clue} {entry.count}
+      </>
+    );
+  }
+  if (entry.type === 'guess') {
+    const emoji = resultEmoji(entry.card_type, entry.team);
+    return (
+      <>
+        {round}
+        <span style={{ color: teamColor(entry.team), fontWeight: 700 }}>{entry.team}</span> Operatives: {entry.codename} {emoji}
+      </>
+    );
+  }
+  if (entry.type === 'pass') {
+    return (
+      <>
+        {round}
+        <span style={{ color: teamColor(entry.team), fontWeight: 700 }}>{entry.team}</span> Operatives PASSED
+      </>
+    );
+  }
+  return (
+    <>
+      {round}
+      {entry.player || 'Unknown'} {entry.type || 'action'}
+    </>
+  );
+}
+
+function latestClueForTeam(history: Array<Record<string, any>>, team?: string) {
+  if (!team) return null;
+  for (let i = history.length - 1; i >= 0; i -= 1) {
+    const entry = history[i];
+    if (entry.type === 'clue' && entry.team === team) return entry;
+  }
+  return null;
+}
+
+function codenamesRoleFromPlayer(player?: { name?: string; idx?: number; team?: string }) {
+  const name = (player?.name || '').toLowerCase();
+  if (name.includes('spymaster')) return 'Spymaster';
+  if (name.includes('operatives')) return 'Operatives';
+  if (player?.idx === 0 || player?.idx === 2) return 'Spymaster';
+  if (player?.idx === 1 || player?.idx === 3) return 'Operatives';
+  return null;
 }
 
 const fetchSession = async (slug: string, id: string): Promise<SessionState> => {
@@ -172,7 +244,32 @@ export default function SessionPage() {
   });
 
   const action = actionsQuery.data?.[0];
+  const actions = actionsQuery.data || [];
   const [selectedChoice, setSelectedChoice] = useState<string>('');
+  const [clueText, setClueText] = useState('');
+  const [clueCount, setClueCount] = useState<number>(1);
+
+  const codenamesHistory = (state as any)?.history || [];
+  const codenamesBoard = (state as any)?.board_cards || [];
+  const humanPlayer = sessionData?.players?.find((p) => p.human) || sessionData?.players?.[humanPlayerIdx];
+  const humanTeam = humanPlayer?.team;
+  const humanRole = codenamesRoleFromPlayer(humanPlayer);
+  const latestClue = latestClueForTeam(codenamesHistory, humanTeam);
+  const codenamesTurnRole = state?.state?.guesses_remaining > 0 ? 'Operatives' : 'Spymaster';
+  const codenamesTurnTeam = state?.state?.current_team;
+  const isCodenamesTurn = Boolean(game === 'codenames' && humanTeam && humanRole && codenamesTurnTeam && humanTeam === codenamesTurnTeam && humanRole === codenamesTurnRole);
+  const isCodenamesOver = isGameOver(state?.state);
+  const recentCodenamesActions = [...codenamesHistory].slice(-3).reverse();
+
+  const codenamesPlayAgainMutation = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/games/${game}/sessions`, {
+        human_seats: [humanPlayerIdx],
+      });
+      return res.data;
+    },
+    onSuccess: (session) => navigate(`/${session.game_slug}/${session.session_id}`),
+  });
 
   if (isLoading || !sessionData) {
     return (
@@ -184,24 +281,26 @@ export default function SessionPage() {
 
   return (
     <div className="container" style={{ display: 'grid', gap: 16 }}>
-      <div className="flex" style={{ justifyContent: 'space-between' }}>
+      <div className="session-topbar">
         <div className="flex" style={{ gap: 8 }}>
           <button className="button secondary" onClick={() => navigate('/')}>🏠 Home</button>
           <button className="button secondary" onClick={() => navigate(`/${game}`)}>← Back</button>
         </div>
-        <span className="badge">{wsConnected ? 'Live' : 'Offline'}</span>
+        <div className="session-topbar-center">
+          {game === 'codenames' ? 'Codenames' : game === 'rps' ? 'Strategic RPS' : sessionData.game_slug}
+        </div>
+        <span className="badge session-topbar-right">{wsConnected ? 'Live' : 'Offline'}</span>
       </div>
 
       <div className="card" style={{ display: 'grid', gap: 12 }}>
         <div className="flex" style={{ justifyContent: 'space-between' }}>
-          <h2>Session {sessionData.session_id}</h2>
           <div className="flex" style={{ gap: 8, alignItems: 'center' }}>
-            {state?.state?.game_over && (
+            {isGameOver(state?.state) && (
               <span className="badge" style={{ background: '#dcfce7', color: '#166534' }}>
                 {sessionWinnerLabel(state?.state)}
               </span>
             )}
-            <span>{state?.state?.game_over ? 'Game Over' : `Round ${(state?.state?.current_round ?? 0) + 1}`}</span>
+            <span>{isGameOver(state?.state) ? 'Game Over' : `Round ${(state?.state?.current_round ?? 0) + 1}`}</span>
           </div>
         </div>
         {game === 'rps' && state ? (
@@ -217,6 +316,17 @@ export default function SessionPage() {
               highlight={state.state?.game_over && state.state?.winner === 'Player 2'}
             />
             <StatCard title="Round" value={`${(state.state?.current_round ?? 0) + 1}`} />
+          </div>
+        ) : game === 'codenames' && state ? (
+          <div className="flex" style={{ flexWrap: 'wrap', gap: 16 }}>
+            <StatCard title="Red Remaining" value={`${state.state?.red_remaining ?? 0}`} highlight={state.state?.winner === 'Red'} />
+            <StatCard title="Blue Remaining" value={`${state.state?.blue_remaining ?? 0}`} highlight={state.state?.winner === 'Blue'} />
+            <StatCard
+              title="Current Team"
+              value={`${state.state?.current_team ?? '—'}`}
+              valueColor={state.state?.current_team === 'Red' ? '#dc2626' : state.state?.current_team === 'Blue' ? '#2563eb' : undefined}
+            />
+            <StatCard title="Guesses Left" value={`${state.state?.guesses_remaining ?? 0}`} />
           </div>
         ) : (
           <p style={{ whiteSpace: 'pre-wrap', fontFamily: 'ui-monospace' }}>{state?.board_view || 'No board view'}</p>
@@ -315,6 +425,230 @@ export default function SessionPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {game === 'codenames' && state && (
+        <>
+          <div className="card" style={{ display: 'grid', gap: 10 }}>
+            <div className="codenames-board-header">
+              <h3 className="codenames-board-title">Board</h3>
+              <div className="codenames-board-recent">
+                {recentCodenamesActions.length > 0 ? (
+                  [...recentCodenamesActions].reverse().map((entry: any, idx: number) => (
+                    <div key={`${entry.round}-board-${idx}`}>{formatCodenamesHistoryEntry(entry)}</div>
+                  ))
+                ) : (
+                  <div>Recent actions: —</div>
+                )}
+              </div>
+              <div className="codenames-board-clue">
+                {!isCodenamesOver && !isCodenamesTurn ? (
+                  <>Waiting for {codenamesTurnTeam} {codenamesTurnRole}…</>
+                ) : (
+                  isCodenamesTurn && (
+                    latestClue ? (
+                      <>Latest clue: <strong>{latestClue.clue}</strong> ({latestClue.count})</>
+                    ) : (
+                      <>Latest clue: —</>
+                    )
+                  )
+                )}
+              </div>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+                gap: 8,
+              }}
+            >
+              {codenamesBoard.map((card: any) => {
+                const guessAction = actions.find((a) => a.name === 'guess');
+                const guessOptions = guessAction?.schema?.properties?.codename?.enum || [];
+                const isSelectable = isCodenamesTurn && !isCodenamesOver && guessOptions.includes(card.code);
+                const isSelected = selectedChoice === card.code;
+                const typeColors: Record<string, string> = {
+                  Red: '#fecaca',
+                  Blue: '#bfdbfe',
+                  Civilian: '#fde68a',
+                  Assassin: '#e9d5ff',
+                };
+                const typeText: Record<string, string> = {
+                  Red: '#dc2626',
+                  Blue: '#2563eb',
+                  Civilian: '#ca8a04',
+                  Assassin: '#7c3aed',
+                };
+                const isRevealed = card.state === 'Revealed';
+                const isOperatives = humanRole === 'Operatives';
+                const hasType = Boolean(card.type) && (isRevealed || humanRole === 'Spymaster' || (isCodenamesOver && isOperatives));
+                const bg = isRevealed ? (card.type ? typeColors[card.type] : '#f8fafc') : '#ffffff';
+                const color = hasType ? typeText[card.type || 'Civilian'] : '#0f172a';
+                const isDimmed = !isSelectable && humanRole !== 'Spymaster';
+                return (
+                  <button
+                    key={card.id}
+                    type="button"
+                    onClick={() => isSelectable && setSelectedChoice(card.code)}
+                    className="card"
+                    style={{
+                      padding: '12px 8px',
+                      minHeight: 56,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                      background: bg,
+                      color,
+                      textShadow: 'none',
+                      border: isSelected ? '2px solid #22c55e' : '1px solid #e2e8f0',
+                      opacity: isSelected || !isDimmed ? 1 : 0.6,
+                      cursor: isSelectable ? 'pointer' : 'default',
+                    }}
+                    disabled={!isSelectable}
+                    title={card.type ? `${card.type} ${card.state}` : card.state}
+                  >
+                    {card.code}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="card" style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box', display: 'grid', gap: 10 }}>
+            {actions.find((a) => a.name === 'clue') && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const clueAction = actions.find((a) => a.name === 'clue');
+                  if (!clueAction) return;
+                  actionMutation.mutate({ action: clueAction.name, params: { clue: clueText, count: clueCount } });
+                }}
+                style={{ display: 'grid', gap: 8 }}
+              >
+                <label style={{ display: 'grid', gap: 6 }}>
+                  Clue word
+                  <input
+                    type="text"
+                    value={clueText}
+                    onChange={(e) => setClueText(e.target.value)}
+                    required
+                    placeholder="One word"
+                    disabled={!isCodenamesTurn || isCodenamesOver}
+                  />
+                </label>
+                <label style={{ display: 'grid', gap: 6 }}>
+                  Number of cards
+                  <input
+                    type="number"
+                    min={1}
+                    max={9}
+                    value={clueCount}
+                    onChange={(e) => setClueCount(Number(e.target.value))}
+                    required
+                    disabled={!isCodenamesTurn || isCodenamesOver}
+                  />
+                </label>
+                {isCodenamesOver ? (
+                  <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+                    <button
+                      className="button"
+                      onClick={() => codenamesPlayAgainMutation.mutate()}
+                      disabled={codenamesPlayAgainMutation.isPending}
+                      style={{ flex: 1 }}
+                      type="button"
+                    >
+                      {codenamesPlayAgainMutation.isPending ? 'Starting…' : 'Play Again'}
+                    </button>
+                    <button
+                      className="button secondary"
+                      onClick={() => navigate('/codenames')}
+                      style={{ flex: 1 }}
+                      type="button"
+                    >
+                      Settings
+                    </button>
+                  </div>
+                ) : (
+                  <button className="button" type="submit" disabled={actionMutation.isPending || !clueText || !isCodenamesTurn || isCodenamesOver}>
+                    {actionMutation.isPending ? 'Sending…' : 'Submit Clue'}
+                  </button>
+                )}
+              </form>
+            )}
+            {(actions.find((a) => a.name === 'guess') || actions.find((a) => a.name === 'pass')) && (
+              <div style={{ display: 'flex', gap: 10, width: '100%' }}>
+                {isCodenamesOver ? (
+                  <>
+                    <button
+                      className="button"
+                      onClick={() => codenamesPlayAgainMutation.mutate()}
+                      disabled={codenamesPlayAgainMutation.isPending}
+                      style={{ flex: 1 }}
+                    >
+                      {codenamesPlayAgainMutation.isPending ? 'Starting…' : 'Play Again'}
+                    </button>
+                    <button
+                      className="button secondary"
+                      onClick={() => navigate('/codenames')}
+                      style={{ flex: 1 }}
+                    >
+                      Settings
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {actions.find((a) => a.name === 'guess') && (
+                      <button
+                        className="button"
+                        onClick={() => {
+                          const guessAction = actions.find((a) => a.name === 'guess');
+                          if (!guessAction) return;
+                          actionMutation.mutate({ action: guessAction.name, params: { codename: selectedChoice } });
+                        }}
+                        disabled={actionMutation.isPending || !selectedChoice || !isCodenamesTurn || isCodenamesOver}
+                        style={{ flex: 1 }}
+                      >
+                        {actionMutation.isPending ? 'Sending…' : 'Submit'}
+                      </button>
+                    )}
+                    {actions.find((a) => a.name === 'pass') && (
+                      <button
+                        className="button secondary"
+                        onClick={() => actionMutation.mutate({ action: 'pass', params: {} })}
+                        disabled={actionMutation.isPending || !isCodenamesTurn || isCodenamesOver}
+                        style={{ flex: 1 }}
+                      >
+                        Pass
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+            {actionMutation.error && <p style={{ color: 'crimson' }}>Error: {(actionMutation.error as any).response?.data?.detail || 'Failed'}</p>}
+          </div>
+
+
+          <div className="card" style={{ display: 'grid', gap: 8 }}>
+            <h3>Action History</h3>
+            {codenamesHistory.length === 0 ? (
+              <div style={{ color: '#475569' }}>No actions yet.</div>
+            ) : (
+              <div
+                style={{
+                  maxHeight: 160,
+                  overflowY: 'auto',
+                }}
+              >
+                {[...codenamesHistory].reverse().map((entry: any, idx: number) => (
+                  <div key={`${entry.round}-${idx}`} style={{ fontSize: 14, marginBottom: 6, lineHeight: '20px' }}>
+                    {formatCodenamesHistoryEntry(entry)}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

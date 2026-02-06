@@ -15,6 +15,8 @@ class SessionStateResponse(BaseModel):
     players: list[dict]
     state: dict
     board_view: str | None = None
+    board_cards: list[dict] | None = None
+    history: list[dict] | None = None
     turn: int | None = None
 
 

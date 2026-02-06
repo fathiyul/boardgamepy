@@ -14,6 +14,8 @@ export type SessionState = {
   players: Array<{ idx: number; team?: string; name?: string; human?: boolean }>;
   state: Record<string, any>;
   board_view?: string | null;
+  board_cards?: Array<{ id: number; code: string; state: string; type?: string | null }>;
+  history?: Array<Record<string, any>>;
   turn?: number | null;
 };
 
