@@ -30,6 +30,7 @@ DB_INSTANCE="${DB_INSTANCE:-bgpy-sql}"
 DB_NAME="${DB_NAME:-bgpy}"
 DB_USER="${DB_USER:-bgpy}"
 DB_PASSWORD="${DB_PASSWORD:-}"
+DB_TIER="${DB_TIER:-db-f1-micro}"
 
 OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-}"
 
@@ -62,10 +63,25 @@ fi
 if [[ "$ACTION" != "fix-env" ]]; then
   echo "Ensuring Cloud SQL instance exists..."
   if ! gcloud sql instances describe "$DB_INSTANCE" >/dev/null 2>&1; then
+    set +e
     gcloud sql instances create "$DB_INSTANCE" \
       --database-version=POSTGRES_15 \
-      --cpu=1 --memory=4GB \
-      --region="$REGION"
+      --tier="$DB_TIER" \
+      --region="$REGION" \
+      --storage-type=HDD \
+      --storage-size=10 \
+      --availability-type=ZONAL
+    CREATE_STATUS=$?
+    set -e
+    if [[ $CREATE_STATUS -ne 0 ]]; then
+      echo "HDD storage not supported for this config. Retrying with default storage type..."
+      gcloud sql instances create "$DB_INSTANCE" \
+        --database-version=POSTGRES_15 \
+        --tier="$DB_TIER" \
+        --region="$REGION" \
+        --storage-size=10 \
+        --availability-type=ZONAL
+    fi
   fi
 fi
 
