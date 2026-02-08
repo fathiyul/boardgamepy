@@ -72,6 +72,48 @@ pip install -e ".[ai,examples]"
 
 > **Note**: BoardGamePy is not yet published to PyPI. Use GitHub releases or install from source.
 
+## Web App (Local + Deploy)
+
+### Run Locally
+
+Backend:
+```bash
+export OPENROUTER_API_KEY=sk-...   # only if you want AI players
+uvicorn webapp.backend.main:app --reload --port 8000
+```
+
+Frontend:
+```bash
+cd webapp/frontend
+npm install
+VITE_API_URL=http://localhost:8000 npm run dev -- --host
+```
+
+Open: `http://localhost:5173`
+
+### Deploy to GCP
+
+Use the deploy script:
+```bash
+./scripts/deploy_gcp.sh
+```
+
+Useful modes:
+```bash
+./scripts/deploy_gcp.sh backend-only
+./scripts/deploy_gcp.sh frontend-only
+./scripts/deploy_gcp.sh fix-env
+```
+
+Environment variables (example via `.env.gcp_deployment`):
+```
+PROJECT_ID=your-project
+DB_PASSWORD=your-db-password
+OPENROUTER_API_KEY=sk-...   # optional if only human seats
+```
+
+See `webappdeployguide.md` for detailed deployment steps.
+
 ## Quick Start
 
 ### Defining a Game
@@ -451,4 +493,3 @@ This is a framework extracted from a Codenames implementation. Contributions wel
 - Documentation improvements
 - Bug fixes and optimizations
 - UI renderers (web, mobile, etc.)
-
